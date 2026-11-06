@@ -1,0 +1,79 @@
+{
+ "actions": [],
+ "creation": "2026-11-06 00:00:00",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "billing_section",
+  "billing_day",
+  "due_days_after_billing",
+  "prorate_partial_months"
+ ],
+ "fields": [
+  {
+   "fieldname": "billing_section",
+   "fieldtype": "Section Break",
+   "label": "Billing defaults"
+  },
+  {
+   "default": "1",
+   "description": "Day of the month an invoice is raised. Months with fewer days use the last day. Default is 1.",
+   "fieldname": "billing_day",
+   "fieldtype": "Int",
+   "label": "Billing Day",
+   "reqd": 1
+  },
+  {
+   "default": "7",
+   "description": "Days after the later of the billing date and the first occupied day in that month. Default is 7.",
+   "fieldname": "due_days_after_billing",
+   "fieldtype": "Int",
+   "label": "Due Days After Billing",
+   "reqd": 1
+  },
+  {
+   "default": "1",
+   "description": "When on, a partial first or final month is charged for the actual occupied days divided by the days in that month. Default is on.",
+   "fieldname": "prorate_partial_months",
+   "fieldtype": "Check",
+   "label": "Prorate Partial Months"
+  }
+ ],
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-11-06 00:00:00.000000",
+ "module": "Property Management",
+ "name": "Property Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Property Super Admin",
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "Property User"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

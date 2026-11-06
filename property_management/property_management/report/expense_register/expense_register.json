@@ -1,0 +1,23 @@
+{
+ "add_total_row": 1,
+ "disabled": 0,
+ "doctype": "Report",
+ "is_standard": "Yes",
+ "module": "Property Management",
+ "name": "Expense Register",
+ "prepared_report": 0,
+ "ref_doctype": "Financial Transaction",
+ "report_name": "Expense Register",
+ "report_type": "Script Report",
+ "roles": [
+  {
+   "role": "Property User"
+  },
+  {
+   "role": "Property Super Admin"
+  },
+  {
+   "role": "System Manager"
+  }
+ ]
+}

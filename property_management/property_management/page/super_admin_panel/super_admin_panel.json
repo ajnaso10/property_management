@@ -1,0 +1,18 @@
+{
+ "doctype": "Page",
+ "icon": "users",
+ "module": "Property Management",
+ "name": "super-admin-panel",
+ "page_name": "super-admin-panel",
+ "roles": [
+  {
+   "role": "Property Super Admin"
+  },
+  {
+   "role": "System Manager"
+  }
+ ],
+ "standard": "Yes",
+ "system_page": 0,
+ "title": "Super Admin Panel"
+}

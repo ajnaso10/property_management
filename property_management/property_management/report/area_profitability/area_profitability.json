@@ -1,0 +1,23 @@
+{
+ "add_total_row": 1,
+ "disabled": 0,
+ "doctype": "Report",
+ "is_standard": "Yes",
+ "module": "Property Management",
+ "name": "Area Profitability",
+ "prepared_report": 0,
+ "ref_doctype": "Area",
+ "report_name": "Area Profitability",
+ "report_type": "Script Report",
+ "roles": [
+  {
+   "role": "Property User"
+  },
+  {
+   "role": "Property Super Admin"
+  },
+  {
+   "role": "System Manager"
+  }
+ ]
+}

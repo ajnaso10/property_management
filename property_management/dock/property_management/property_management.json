@@ -1,0 +1,15 @@
+{
+ "app": "property_management",
+ "doctype": "Dock",
+ "name": "property_management",
+ "standard": 1,
+ "items": [
+  {
+   "hidden": 0,
+   "icon": "building",
+   "link_to": "Property Management",
+   "link_type": "Sidebar",
+   "title": "Property Management"
+  }
+ ]
+}

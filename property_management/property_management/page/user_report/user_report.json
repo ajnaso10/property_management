@@ -1,0 +1,21 @@
+{
+ "doctype": "Page",
+ "icon": "building",
+ "module": "Property Management",
+ "name": "user-report",
+ "page_name": "user-report",
+ "roles": [
+  {
+   "role": "Property User"
+  },
+  {
+   "role": "Property Super Admin"
+  },
+  {
+   "role": "System Manager"
+  }
+ ],
+ "standard": "Yes",
+ "system_page": 0,
+ "title": "User Report"
+}

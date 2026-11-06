@@ -1,0 +1,7 @@
+{
+ "doctype": "Dashboard Chart Source",
+ "module": "Property Management",
+ "name": "Monthly Property Movement",
+ "source_name": "Monthly Property Movement",
+ "timeseries": 0
+}
