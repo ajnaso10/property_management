@@ -1,0 +1,25 @@
+{
+ "chart_name": "Current Occupancy",
+ "chart_type": "Custom",
+ "doctype": "Dashboard Chart",
+ "empty_state_message": "Occupied, vacant, and maintenance beds right now. This is not an occupancy history.",
+ "filters_json": "{}",
+ "is_public": 1,
+ "is_standard": 1,
+ "module": "Property Management",
+ "name": "Current Occupancy",
+ "roles": [
+  {
+   "role": "Property User"
+  },
+  {
+   "role": "Property Super Admin"
+  },
+  {
+   "role": "System Manager"
+  }
+ ],
+ "source": "Current Occupancy",
+ "timeseries": 0,
+ "type": "Donut"
+}

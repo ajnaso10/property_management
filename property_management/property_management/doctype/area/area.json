@@ -1,0 +1,178 @@
+{
+ "actions": [],
+ "autoname": "format:ARA-{#####}",
+ "creation": "2026-11-06 00:00:00",
+ "description": "A room or shared space inside a flat. Several beds can sit in one area.",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "area_name",
+  "area_code",
+  "area_type",
+  "status",
+  "column_break_main",
+  "flat",
+  "building",
+  "owner_user",
+  "floor_number",
+  "capacity",
+  "counts_section",
+  "number_of_beds",
+  "occupied_beds",
+  "vacant_beds"
+ ],
+ "fields": [
+  {
+   "fieldname": "area_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Area Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "area_code",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Area Code",
+   "reqd": 1
+  },
+  {
+   "default": "Bedroom",
+   "fieldname": "area_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Area Type",
+   "options": "Bedroom\nHall\nKitchen\nShared Area\nOther",
+   "reqd": 1
+  },
+  {
+   "default": "Active",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Active\nInactive",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "flat",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Flat",
+   "options": "Flat",
+   "reqd": 1,
+   "search_index": 1
+  },
+  {
+   "fetch_from": "flat.building",
+   "fieldname": "building",
+   "fieldtype": "Link",
+   "label": "Building",
+   "options": "Building",
+   "read_only": 1
+  },
+  {
+   "fieldname": "owner_user",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Owner User",
+   "options": "User",
+   "reqd": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "floor_number",
+   "fieldtype": "Int",
+   "label": "Floor Number"
+  },
+  {
+   "description": "How many people this area is meant to hold. The bed count is calculated from Bed records.",
+   "fieldname": "capacity",
+   "fieldtype": "Int",
+   "label": "Capacity"
+  },
+  {
+   "fieldname": "counts_section",
+   "fieldtype": "Section Break",
+   "label": "Beds"
+  },
+  {
+   "default": "0",
+   "fieldname": "number_of_beds",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Number of Beds",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "occupied_beds",
+   "fieldtype": "Int",
+   "label": "Occupied Beds",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "vacant_beds",
+   "fieldtype": "Int",
+   "label": "Vacant Beds",
+   "read_only": 1
+  }
+ ],
+ "links": [],
+ "modified": "2026-11-06 00:00:00.000000",
+ "module": "Property Management",
+ "name": "Area",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Property Super Admin",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Property User",
+   "write": 1
+  }
+ ],
+ "search_fields": "area_code,area_type",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "area_name",
+ "track_changes": 1
+}

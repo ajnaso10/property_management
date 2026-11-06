@@ -1,0 +1,117 @@
+{
+ "actions": [],
+ "autoname": "field:user",
+ "creation": "2026-11-06 00:00:00",
+ "description": "One profile per property login. The username is the mobile number. Passwords stay in Frappe User auth.",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "user",
+  "mobile_number",
+  "enabled",
+  "column_break_main",
+  "account_expiry",
+  "must_change_password",
+  "login_note"
+ ],
+ "fields": [
+  {
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "User",
+   "options": "User",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "description": "Digits only, including country code. This is the login username.",
+   "fieldname": "mobile_number",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Mobile Number",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Enabled"
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "The account can sign in on this date. The next day is blocked until a Property Super Admin moves it.",
+   "fieldname": "account_expiry",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Account Expiry",
+   "reqd": 1
+  },
+  {
+   "default": "1",
+   "description": "Set when the super admin creates or resets the password. Cleared after the user sets their own password.",
+   "fieldname": "must_change_password",
+   "fieldtype": "Check",
+   "label": "Must Change Password",
+   "read_only": 1
+  },
+  {
+   "fieldname": "login_note",
+   "fieldtype": "Small Text",
+   "label": "Login",
+   "read_only": 1,
+   "default": "Sign in with the mobile number. The Frappe user id is a synthetic email and is not the username."
+  }
+ ],
+ "links": [],
+ "modified": "2026-11-06 00:00:00.000000",
+ "module": "Property Management",
+ "name": "Property User Profile",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Property Super Admin",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "Property User"
+  }
+ ],
+ "search_fields": "mobile_number",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "mobile_number",
+ "track_changes": 1
+}

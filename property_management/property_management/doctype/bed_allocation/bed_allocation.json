@@ -1,0 +1,191 @@
+{
+ "actions": [],
+ "autoname": "format:ALC-{#####}",
+ "creation": "2026-11-06 00:00:00",
+ "description": "Places one tenant on one vacant bed. Vacate closes occupancy and keeps the rent and deposit figures on this row.",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "tenant",
+  "bed",
+  "allocation_status",
+  "column_break_main",
+  "owner_user",
+  "allocation_date",
+  "vacating_date",
+  "links_section",
+  "area",
+  "flat",
+  "building",
+  "money_section",
+  "generate_rent",
+  "monthly_rent",
+  "deposit_amount",
+  "billing_start_date",
+  "remarks"
+ ],
+ "fields": [
+  {
+   "fieldname": "tenant",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Tenant",
+   "options": "Tenant",
+   "reqd": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "bed",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Bed",
+   "options": "Bed",
+   "reqd": 1,
+   "search_index": 1
+  },
+  {
+   "default": "Active",
+   "fieldname": "allocation_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Allocation Status",
+   "options": "Active\nVacated",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "owner_user",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Owner User",
+   "options": "User",
+   "reqd": 1,
+   "search_index": 1
+  },
+  {
+   "default": "Today",
+   "fieldname": "allocation_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Allocation Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "vacating_date",
+   "fieldtype": "Date",
+   "label": "Vacating Date"
+  },
+  {
+   "fieldname": "links_section",
+   "fieldtype": "Section Break",
+   "label": "Location"
+  },
+  {
+   "fetch_from": "bed.area",
+   "fieldname": "area",
+   "fieldtype": "Link",
+   "label": "Area",
+   "options": "Area",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "bed.flat",
+   "fieldname": "flat",
+   "fieldtype": "Link",
+   "label": "Flat",
+   "options": "Flat",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "bed.building",
+   "fieldname": "building",
+   "fieldtype": "Link",
+   "label": "Building",
+   "options": "Building",
+   "read_only": 1
+  },
+  {
+   "fieldname": "money_section",
+   "fieldtype": "Section Break",
+   "label": "Agreed amounts"
+  },
+  {
+   "default": "1",
+   "description": "Turned off by Vacate. A later billing phase must skip this row. No invoice is created here, and open amounts are not written off.",
+   "fieldname": "generate_rent",
+   "fieldtype": "Check",
+   "label": "Generate Rent"
+  },
+  {
+   "description": "Stored for a later billing phase. Vacating does not clear it, and nothing posts it to a ledger.",
+   "fieldname": "monthly_rent",
+   "fieldtype": "Currency",
+   "label": "Monthly Rent"
+  },
+  {
+   "description": "Stored for a later billing phase. Vacating does not refund or zero this amount.",
+   "fieldname": "deposit_amount",
+   "fieldtype": "Currency",
+   "label": "Deposit Amount"
+  },
+  {
+   "fieldname": "billing_start_date",
+   "fieldtype": "Date",
+   "label": "Billing Start Date"
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
+  }
+ ],
+ "links": [],
+ "modified": "2026-11-06 00:00:00.000000",
+ "module": "Property Management",
+ "name": "Bed Allocation",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Property Super Admin",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Property User",
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

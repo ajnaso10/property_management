@@ -1,0 +1,133 @@
+{
+ "actions": [],
+ "creation": "2026-11-06 00:00:00",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "links": [],
+ "modified": "2026-11-06 00:00:00.000000",
+ "module": "Property Management",
+ "owner": "Administrator",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "name": "Rent Billing Log",
+ "autoname": "format:RBL-{#####}",
+ "naming_rule": "Expression",
+ "description": "One row per billing attempt: success, skip, or failure. A failure can be retried.",
+ "field_order": [
+  "monthly_revenue",
+  "bed_allocation",
+  "billing_month",
+  "outcome",
+  "column_break_main",
+  "owner_user",
+  "rent_invoice",
+  "message"
+ ],
+ "fields": [
+  {
+   "fieldname": "monthly_revenue",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Monthly Revenue",
+   "options": "Monthly Revenue",
+   "reqd": 1
+  },
+  {
+   "fieldname": "bed_allocation",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Bed Allocation",
+   "options": "Bed Allocation",
+   "reqd": 1
+  },
+  {
+   "fieldname": "billing_month",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Billing Month"
+  },
+  {
+   "fieldname": "outcome",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Outcome",
+   "options": "Success\nSkipped\nFailed",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "owner_user",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Owner User",
+   "options": "User",
+   "reqd": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "rent_invoice",
+   "fieldtype": "Link",
+   "label": "Rent Invoice",
+   "options": "Rent Invoice"
+  },
+  {
+   "fieldname": "message",
+   "fieldtype": "Small Text",
+   "label": "Message"
+  }
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "submit": 0,
+   "cancel": 0,
+   "amend": 0,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1
+  },
+  {
+   "role": "Property Super Admin",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "submit": 0,
+   "cancel": 0,
+   "amend": 0,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1
+  },
+  {
+   "role": "Property User",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 0,
+   "submit": 0,
+   "cancel": 0,
+   "amend": 0,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 0
+  }
+ ]
+}
