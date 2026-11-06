@@ -136,9 +136,17 @@ class TestBedAllocation(IntegrationTestCase):
 	def test_allocation_history_blocks_delete(self):
 		tenant = make_tenant("Kept Tenant")
 		allocation = make_allocation(self.bed.name, tenant.name)
-		for doc in (self.building, self.flat, self.area, self.bed, tenant, allocation):
+		# Property User has Delete on the hierarchy, so the on_trash guards run.
+		for doc in (self.building, self.flat, self.area, self.bed, tenant):
 			with self.assertRaises(frappe.ValidationError):
 				doc.delete()
+		# Bed Allocation grants no Delete permission, so the role check fails first.
+		with self.assertRaises(frappe.PermissionError):
+			allocation.delete()
+		# A user who bypasses that role check still cannot remove the history row.
+		frappe.set_user("Administrator")
+		with self.assertRaises(frappe.ValidationError):
+			frappe.get_doc("Bed Allocation", allocation.name).delete()
 
 	def test_property_user_cannot_open_another_users_tenant_or_allocation(self):
 		frappe.set_user("Administrator")
