@@ -32,6 +32,13 @@ permission_query_conditions = {
 	"Bed": "property_management.permissions.query_bed",
 	"Tenant": "property_management.permissions.query_tenant",
 	"Bed Allocation": "property_management.permissions.query_bed_allocation",
+	"Cash Bank Account": "property_management.permissions.query_cash_bank_account",
+	"Financial Transaction": "property_management.permissions.query_financial_transaction",
+	"Rent Invoice": "property_management.permissions.query_rent_invoice",
+	"Rent Payment": "property_management.permissions.query_rent_payment",
+	"Tenant Deposit": "property_management.permissions.query_tenant_deposit",
+	"Deposit Transaction": "property_management.permissions.query_deposit_transaction",
+	"Property Expense": "property_management.permissions.query_property_expense",
 }
 
 has_permission = {
@@ -42,6 +49,13 @@ has_permission = {
 	"Bed": "property_management.permissions.has_permission",
 	"Tenant": "property_management.permissions.has_permission",
 	"Bed Allocation": "property_management.permissions.has_permission",
+	"Cash Bank Account": "property_management.permissions.has_permission",
+	"Financial Transaction": "property_management.permissions.has_permission",
+	"Rent Invoice": "property_management.permissions.has_permission",
+	"Rent Payment": "property_management.permissions.has_permission",
+	"Tenant Deposit": "property_management.permissions.has_permission",
+	"Deposit Transaction": "property_management.permissions.has_permission",
+	"Property Expense": "property_management.permissions.has_permission",
 }
 
 add_to_apps_screen = [

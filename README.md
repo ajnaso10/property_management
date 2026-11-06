@@ -2,7 +2,7 @@
 
 Standalone [Frappe Framework](https://frappeframework.com) v16 app for a property super admin and the people who run buildings. It does not depend on ERPNext, and it does not post journal entries.
 
-Phase 1 is accounts. Phase 2 is the building hierarchy. Phase 3 is tenant placement and vacating. Expenses, deposits, receipts, and profitability reports are not in this version. Agreed rent and deposit amounts stay on each Bed Allocation. Vacating a bed does not delete that row and does not zero those amounts.
+Phase 1 is accounts. Phase 2 is the building hierarchy. Phase 3 is tenant placement and vacating. Phase 4 records rent, deposits, and expenses as transactions. There is still no monthly billing run and no general-ledger accounts.
 
 ## What you can do
 
@@ -169,6 +169,10 @@ The suite covers:
 - A maintenance bed cannot be allocated
 - Building, flat, area, bed, tenant, and allocation rows with history cannot be deleted
 - A property user cannot open another user's tenant or bed allocation
+- Deposit refunds and transfers cannot exceed the remaining balance, and a receipt is not rent revenue
+- A rent payment cannot be allocated above the invoice outstanding or the payment amount
+- An expense posts an Expense transaction, and cancelling it posts the opposite amount without editing the first
+- Vacating a bed does not change a rent invoice outstanding
 
 These tests need a migrated site. They were not executed in the environment that added the app, because that machine has Python 3.12 and Frappe v16 requires Python 3.14.
 
@@ -188,6 +192,17 @@ Tenants need a mobile number and an identification number. Status is Active (can
 
 Bed Allocation is the stay history. Vacate is the button on that form and `Bed Allocation.vacate`. It requires a vacating date and sets Generate Rent to off so a later billing run can skip the row. `allocation_generates_rent` is the hook that run will read. Phase 4–5 must not treat that flag as a write-off of rent or deposit.
 
+## Phase 4
+
+Money is a list of Financial Transaction rows, not debit and credit accounts. Each row belongs to one Owner User, and opening it checks that owner the same way a building does.
+
+- Rent Invoice submit posts Rent Generated. Rent Payment submit posts Rent Received and updates the invoice paid and outstanding amounts. A payment cannot exceed an invoice balance or the payment amount.
+- Tenant Deposit receipts post Deposit Received. That is not rent. Refunds and transfers cannot exceed the remaining balance. Only Transfer to Revenue posts Deposit Transferred to Revenue.
+- Property Expense submit posts Expense. Cancelling it posts a second Expense transaction for the opposite amount. The first transaction stays.
+- Vacate does not change invoice outstanding. `leave_receivables_unchanged` is called from Vacate and does nothing to balances.
+
+Cash/Bank Account is only a name and a type, Cash or Bank.
+
 ## Not in this version
 
-No expense documents, deposit ledger, payment receipt, monthly billing run, financial-position report, or flat profitability report. Property Settings only holds the defaults those later phases will read.
+No scheduled monthly billing, no desk pages, and no financial-position or flat-profitability reports. Property Settings still only stores the billing day and prorate flag for a later phase.

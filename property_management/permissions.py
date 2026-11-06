@@ -98,3 +98,31 @@ def query_tenant(user=None):
 
 def query_bed_allocation(user=None):
 	return permission_query_conditions(user, "Bed Allocation")
+
+
+def query_cash_bank_account(user=None):
+	return permission_query_conditions(user, "Cash Bank Account")
+
+
+def query_financial_transaction(user=None):
+	return permission_query_conditions(user, "Financial Transaction")
+
+
+def query_rent_invoice(user=None):
+	return permission_query_conditions(user, "Rent Invoice")
+
+
+def query_rent_payment(user=None):
+	return permission_query_conditions(user, "Rent Payment")
+
+
+def query_tenant_deposit(user=None):
+	return permission_query_conditions(user, "Tenant Deposit")
+
+
+def query_deposit_transaction(user=None):
+	return permission_query_conditions(user, "Deposit Transaction")
+
+
+def query_property_expense(user=None):
+	return permission_query_conditions(user, "Property Expense")

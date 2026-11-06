@@ -69,6 +69,12 @@ class BedAllocation(OwnedDocument):
 			frappe.throw(_("Only an active allocation can be vacated."))
 		if not vacating_date:
 			frappe.throw(_("Vacating Date is required."))
+		# Outstanding rent invoices and financial transactions stay as they are.
+		# TODO Phase 5: do not write off receivables here. Payments and explicit
+		# receivable adjustments are the only ways to change an invoice balance.
+		from property_management.finance import leave_receivables_unchanged
+
+		leave_receivables_unchanged(self.name)
 		self.allocation_status = "Vacated"
 		self.vacating_date = getdate(vacating_date)
 		self.generate_rent = 0
