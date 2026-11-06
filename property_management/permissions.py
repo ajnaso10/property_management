@@ -126,3 +126,11 @@ def query_deposit_transaction(user=None):
 
 def query_property_expense(user=None):
 	return permission_query_conditions(user, "Property Expense")
+
+
+def query_monthly_revenue(user=None):
+	return permission_query_conditions(user, "Monthly Revenue")
+
+
+def query_rent_billing_log(user=None):
+	return permission_query_conditions(user, "Rent Billing Log")

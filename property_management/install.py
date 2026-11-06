@@ -62,7 +62,8 @@ def ensure_property_settings():
 	):
 		doc = frappe.new_doc("Property Settings")
 		doc.billing_day = 1
-		doc.prorate_partial_months = 0
+		doc.prorate_partial_months = 1
+		doc.due_days_after_billing = 7
 		doc.insert(ignore_permissions=True)
 
 

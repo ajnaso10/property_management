@@ -203,6 +203,56 @@ Money is a list of Financial Transaction rows, not debit and credit accounts. Ea
 
 Cash/Bank Account is only a name and a type, Cash or Bank.
 
+## Phase 5
+
+Rent is generated per calendar month for an active bed allocation. Property Settings holds the rules:
+
+- Billing Day, default 1. A shorter month uses its last day, so 31 is allowed.
+- Due Days After Billing, default 7. The due date is that many days after the later of the billing date and the first occupied day in the month.
+- Prorate Partial Months, default on. Occupied days in the month divided by the number of days in that month. When it is off, any overlapping month is billed at the full monthly rent.
+
+An active allocation with Generate Rent on gets one Monthly Revenue schedule. Rent revisions are effective-dated and do not rewrite a submitted invoice. Vacate sets the schedule end date and still allows the final overlapping month. It does not change outstanding amounts.
+
+The daily job is `property_management.billing.generate_due_rent_invoices`. It catches up any missed months. A Property Super Admin, or a Property User for their own schedules, can run the same job by hand:
+
+```bash
+bench --site property.localhost execute property_management.billing.generate_due_rent_invoices
+```
+
+From the desk or a console session, the whitelisted method is `property_management.billing.generate_rent_invoices` with an optional `as_of` date and an optional `monthly_revenue` name. `property_management.billing.revise_rent` adds a later rate.
+
+Each attempt is a Rent Billing Log row: Success, Skipped, or Failed. A failed period is rolled back to a savepoint and can be run again. The invoice key is the allocation plus `YYYY-MM`, so a repeated run does not create a second invoice.
+
+### Upgrading an existing site
+
+`bench migrate` runs in this order:
+
+1. `pre_model_sync` patch `property_management.patches.v0_1.backfill_rent_invoice_keys`. If `tabRent Invoice` does not exist, the patch returns. That is a clean install: the table is created in the next step with the unique columns already in place.
+2. Frappe schema sync. On an upgrade it creates the unique indexes for `invoice_number` and `billing_key`. It does not add those columns as `UNIQUE` in one `ALTER TABLE`, because the patch has already added them as ordinary nullable columns.
+3. `post_model_sync`. This app has no patches there.
+
+SQLite rejects `ALTER TABLE ... ADD COLUMN ... UNIQUE` (`Cannot add a UNIQUE column`). That is why the columns are added first without the unique constraint. MariaDB and Postgres still receive a normal unique index from schema sync, so the supported database rule is unchanged. SQLite is only the smoke database.
+
+The patch fills a blank invoice number with the invoice name, and a blank billing key with `{bed allocation}-{billing month}`. A value that is already stored is kept. If two invoices would share a number or a key, or a row has no allocation or billing month to derive a key from, migrate stops and names those invoices, including docstatus. No invoice is deleted, and amounts, status, and payments are not changed. Fix the listed rows and run `bench migrate` again.
+
+The data updates are one transaction. Adding a column is committed first, because MariaDB commits DDL on its own. If the backfill then stops, the plain columns remain and the patch is not recorded, so the next migrate continues from the fill step. After the patch succeeds, a later migrate runs it again only if it was not recorded; the fill then finds nothing blank. Schema sync creates `CREATE UNIQUE INDEX IF NOT EXISTS`, so repeating migrate does not rebuild the invoices.
+
+```bash
+python3 -c "from property_management.invoice_migration import sqlite_upgrade_smoke; sqlite_upgrade_smoke()"
+bench --site pm.local migrate
+bench --site pm.local run-tests --app property_management --case TestRentInvoiceKeyPlan
+bench --site pm.local run-tests --app property_management --case TestRentInvoiceKeyBackfill
+```
+
 ## Not in this version
 
-No scheduled monthly billing, no desk pages, and no financial-position or flat-profitability reports. Property Settings still only stores the billing day and prorate flag for a later phase.
+No desk pages and no financial-position or flat-profitability reports.
+
+## Verification
+
+`sqlite_upgrade_smoke` passed in this environment. It reproduces `Cannot add a UNIQUE column`, then adds plain columns, fills keys, and creates the unique indexes without deleting rows. The Frappe site tests were not run here. On the restored Phase 4 copy, deploy this branch and run:
+
+```bash
+bench --site pm.local migrate
+bench --site pm.local run-tests --app property_management
+```
