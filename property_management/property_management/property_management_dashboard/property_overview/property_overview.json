@@ -1,0 +1,22 @@
+{
+ "charts": [
+  {
+   "chart": "Monthly Property Movement",
+   "width": "Full"
+  },
+  {
+   "chart": "Flat Direct Profit",
+   "width": "Half"
+  },
+  {
+   "chart": "Current Occupancy",
+   "width": "Half"
+  }
+ ],
+ "dashboard_name": "Property Overview",
+ "doctype": "Dashboard",
+ "is_default": 0,
+ "is_standard": 1,
+ "module": "Property Management",
+ "name": "Property Overview"
+}

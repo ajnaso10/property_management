@@ -1,6 +1,6 @@
 {
  "charts": [],
- "content": "[{\"id\":\"pm-header\",\"type\":\"header\",\"data\":{\"text\":\"Property Management\",\"col\":12}},{\"id\":\"pm-sc-admin\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Super Admin Panel\",\"col\":3}},{\"id\":\"pm-sc-user\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"User Report\",\"col\":3}},{\"id\":\"pm-sc-buildings\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Buildings\",\"col\":3}},{\"id\":\"pm-sc-allocations\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Bed Allocations\",\"col\":3}},{\"id\":\"pm-card-overview\",\"type\":\"card\",\"data\":{\"card_name\":\"Overview\",\"col\":4}},{\"id\":\"pm-card-property\",\"type\":\"card\",\"data\":{\"card_name\":\"Property\",\"col\":4}},{\"id\":\"pm-card-tenants\",\"type\":\"card\",\"data\":{\"card_name\":\"Tenants\",\"col\":4}},{\"id\":\"pm-card-rent\",\"type\":\"card\",\"data\":{\"card_name\":\"Rent\",\"col\":4}},{\"id\":\"pm-card-money\",\"type\":\"card\",\"data\":{\"card_name\":\"Deposits and expenses\",\"col\":4}},{\"id\":\"pm-card-accounts\",\"type\":\"card\",\"data\":{\"card_name\":\"Accounts\",\"col\":4}}]",
+ "content": "[{\"id\":\"pm-header\",\"type\":\"header\",\"data\":{\"text\":\"Property Management\",\"col\":12}},{\"id\":\"pm-sc-admin\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Super Admin Panel\",\"col\":3}},{\"id\":\"pm-sc-user\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"User Report\",\"col\":3}},{\"id\":\"pm-sc-buildings\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Buildings\",\"col\":3}},{\"id\":\"pm-sc-overview\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Property Overview\",\"col\":3}},{\"id\":\"pm-sc-allocations\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Bed Allocations\",\"col\":3}},{\"id\":\"pm-card-overview\",\"type\":\"card\",\"data\":{\"card_name\":\"Overview\",\"col\":4}},{\"id\":\"pm-card-property\",\"type\":\"card\",\"data\":{\"card_name\":\"Property\",\"col\":4}},{\"id\":\"pm-card-tenants\",\"type\":\"card\",\"data\":{\"card_name\":\"Tenants\",\"col\":4}},{\"id\":\"pm-card-rent\",\"type\":\"card\",\"data\":{\"card_name\":\"Rent\",\"col\":4}},{\"id\":\"pm-card-money\",\"type\":\"card\",\"data\":{\"card_name\":\"Deposits and expenses\",\"col\":4}},{\"id\":\"pm-card-accounts\",\"type\":\"card\",\"data\":{\"card_name\":\"Accounts\",\"col\":4}},{\"id\":\"pm-card-reports\",\"type\":\"card\",\"data\":{\"card_name\":\"Reports\",\"col\":4}}]",
  "creation": "2026-11-06 00:00:00",
  "custom_blocks": [],
  "doctype": "Workspace",
@@ -238,6 +238,124 @@
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Reports",
+   "link_count": 11,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Financial Position",
+   "link_count": 0,
+   "link_to": "Financial Position",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "User-wise Financial Summary",
+   "link_count": 0,
+   "link_to": "User-wise Financial Summary",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Flat Profitability",
+   "link_count": 0,
+   "link_to": "Flat Profitability",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Building Profitability",
+   "link_count": 0,
+   "link_to": "Building Profitability",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Area Profitability",
+   "link_count": 0,
+   "link_to": "Area Profitability",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Rent Position",
+   "link_count": 0,
+   "link_to": "Rent Position",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Deposit Liability",
+   "link_count": 0,
+   "link_to": "Deposit Liability",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Expense Register",
+   "link_count": 0,
+   "link_to": "Expense Register",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Occupancy",
+   "link_count": 0,
+   "link_to": "Occupancy",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Transaction History",
+   "link_count": 0,
+   "link_to": "Transaction History",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Tenant History",
+   "link_count": 0,
+   "link_to": "Tenant History",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
   }
  ],
  "module": "Property Management",
@@ -281,6 +399,12 @@
    "label": "Bed Allocations",
    "link_to": "Bed Allocation",
    "type": "DocType"
+  },
+  {
+   "doc_view": "",
+   "label": "Property Overview",
+   "link_to": "Property Overview",
+   "type": "Dashboard"
   }
  ],
  "standard": 1,

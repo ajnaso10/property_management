@@ -182,6 +182,11 @@ The suite covers:
 - A property user cannot read another user's totals, buildings, or account list, including a forged filter
 - A caller who is not a property user or super admin cannot open the overview
 - Super Admin Panel excludes the Property User role; User Report includes it
+- Financial Position matches the desk overview for the same owner and month
+- Flat profit excludes building overhead, and a cancelled expense nets once
+- A property user cannot read another user's report or chart, including a forged filter
+- Occupancy counts are current, while vacated stays still appear from allocation dates
+- An empty portfolio is zero
 
 These tests need a migrated site. They were not executed in the environment that added the app, because that machine has Python 3.12 and Frappe v16 requires Python 3.14.
 
@@ -262,8 +267,9 @@ bench --site pm.local run-tests --app property_management --case TestRentInvoice
 | 3. Tenant, allocation, vacate | Yes |
 | 4. Rent, deposits, expenses, and reversals | Yes |
 | 5. Monthly rent billing and the invoice-key upgrade | Yes, from `main` at `e11e35b22cecc74a792425193fe00ef4f5396cb2` |
-| 6. Super Admin Panel and User Report | Yes |
-| 7. Full report set and charts | Not started |
+| 6. Super Admin Panel and User Report | Yes, from `main` at `877556c0115a2a883e75c58b101843066f89429c` |
+| 7. Reports and overview charts | Yes |
+| 8. Further work | Not started |
 
 ## Phase 6
 
@@ -299,17 +305,51 @@ bench --site pm.local execute property_management.desk.list_property_accounts
 
 `get_overview` accepts `owner_user`, `building`, `flat`, `area`, `from_date`, and `to_date`.
 
+## Phase 7
+
+Reports use the same measures as the desk overview. A property user is limited to their own rows. A property super admin can leave the user blank for every account, or choose one. Forged user, building, flat, and area filters are rejected. The date range defaults to the current month. Snapshot figures ignore that range and are labelled Snapshot. Period figures use it and are labelled Period.
+
+Operating profit is recognized rental revenue, plus other revenue, plus deposit transferred to revenue, minus expenses. It is not cash profit. Held deposits, rent collected, and advances are separate. A reversal stays as its own negative transaction and is included once. Receivables for a vacated tenant stay in the open balance.
+
+Expenses with no flat are building overhead. Flat Profitability and Area Profitability do not spread that overhead across rows. Building Profitability includes it when no flat is selected, and shows it again in its own column without adding it twice. There is no invented split of a building bill onto flats.
+
+| Requested view | Report or chart |
+| --- | --- |
+| Total financial position | Financial Position |
+| Consolidated position | Financial Position with no property user selected |
+| User-wise position | User-wise Financial Summary |
+| Flat profitability | Flat Profitability, and the Flat Direct Profit chart |
+| Building profitability | Building Profitability |
+| Area profitability | Area Profitability |
+| Rent invoiced, collected, outstanding | Rent Position |
+| Deposit liability and history | Deposit Liability |
+| Expenses | Expense Register |
+| Occupancy and vacancy | Occupancy, and the Current Occupancy chart |
+| Transaction history | Transaction History. This is not a debit and credit ledger |
+| Tenant history | Tenant History, including vacated stays and open receivables |
+| Monthly invoiced revenue, collections, expenses, and profit | Monthly Property Movement chart |
+
+The monthly chart defaults to the six months ending this month. Each point is that month's movement, not a balance. Current Occupancy is the beds right now. It is not a past occupancy rate. Stays in the Occupancy report come from allocation dates, including a vacated row.
+
+Open them from the Property Management workspace or sidebar, or the Property Overview dashboard.
+
+```bash
+bench --site pm.local execute property_management.analytics.run_report --kwargs "{'report': 'financial_position', 'filters': {}}"
+```
+
 ## Not in this version
 
-The long report list and the chart set are not in this branch. The pages show the operating figures above and link to the documents. They do not invent those reports.
+Phase 8 is not started. These reports are the views above, not a padded list of duplicate layouts. There is no cash-profit statement, no apportioned overhead, and no historical occupancy rate built from today's bed counts.
 
 ## Navigation sync
 
 Frappe reimports a standard Workspace only when the file is newer than the row already on the site. This workspace file does not set `modified`, so a migrate compares the current time with the stored row and reloads the file. A site that already had the older DocType-only workspace picks up the Super Admin Panel and User Report links. A later migrate reloads the same file again; `for_reload` replaces the row without the link check that would block it. The standard Dock is `property_management/dock/property_management/property_management.json` and points at the Property Management sidebar, which is what a new site uses to open the module.
 
+Frappe imports a standard Dashboard from `<module>/<module>_dashboard/`, then deletes standard dashboards whose files are not in a folder of that shape. Property Overview lives at `property_management/property_management_dashboard/property_overview/property_overview.json`. `sync_dashboards` loads it on install and on every migrate, and the orphan pass keeps it because the file is in that folder. A folder named only `dashboard` is never imported and is removed if a row was created by hand.
+
 ## Verification
 
-The invoice-key migration on `main` was already verified on a Phase 4 copy and on the live site. This merge was not retested on a Frappe site. On pm.local, check out this branch and run:
+This merge was not run on a Frappe site. Production database and a clean install of this combined branch are not validated here. On the Frappe 16 SQLite acceptance site, check out this branch and run:
 
 ```bash
 bench --site pm.local migrate
@@ -317,4 +357,4 @@ bench --site pm.local clear-cache
 bench --site pm.local run-tests --app property_management
 ```
 
-Then sign in and open `/app/property-management`, `/app/super-admin-panel`, and `/app/user-report`. A property user's first login still stops at `/property-password` until the temporary password is replaced. The automated tests do not click through the desk.
+Then sign in and open `/app/property-management`, `/app/super-admin-panel`, `/app/user-report`, and `/app/property-overview`. Also open Financial Position and Flat Profitability. A property user's first login still stops at `/property-password` until the temporary password is replaced. The automated tests do not click through the desk.
