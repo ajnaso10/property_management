@@ -223,13 +223,34 @@ From the desk or a console session, the whitelisted method is `property_manageme
 
 Each attempt is a Rent Billing Log row: Success, Skipped, or Failed. A failed period is rolled back to a savepoint and can be run again. The invoice key is the allocation plus `YYYY-MM`, so a repeated run does not create a second invoice.
 
+### Upgrading an existing site
+
+`bench migrate` runs in this order:
+
+1. `pre_model_sync` patch `property_management.patches.v0_1.backfill_rent_invoice_keys`. If `tabRent Invoice` does not exist, the patch returns. That is a clean install: the table is created in the next step with the unique columns already in place.
+2. Frappe schema sync. On an upgrade it creates the unique indexes for `invoice_number` and `billing_key`. It does not add those columns as `UNIQUE` in one `ALTER TABLE`, because the patch has already added them as ordinary nullable columns.
+3. `post_model_sync`. This app has no patches there.
+
+SQLite rejects `ALTER TABLE ... ADD COLUMN ... UNIQUE` (`Cannot add a UNIQUE column`). That is why the columns are added first without the unique constraint. MariaDB and Postgres still receive a normal unique index from schema sync, so the supported database rule is unchanged. SQLite is only the smoke database.
+
+The patch fills a blank invoice number with the invoice name, and a blank billing key with `{bed allocation}-{billing month}`. A value that is already stored is kept. If two invoices would share a number or a key, or a row has no allocation or billing month to derive a key from, migrate stops and names those invoices, including docstatus. No invoice is deleted, and amounts, status, and payments are not changed. Fix the listed rows and run `bench migrate` again.
+
+The data updates are one transaction. Adding a column is committed first, because MariaDB commits DDL on its own. If the backfill then stops, the plain columns remain and the patch is not recorded, so the next migrate continues from the fill step. After the patch succeeds, a later migrate runs it again only if it was not recorded; the fill then finds nothing blank. Schema sync creates `CREATE UNIQUE INDEX IF NOT EXISTS`, so repeating migrate does not rebuild the invoices.
+
+```bash
+python3 -c "from property_management.invoice_migration import sqlite_upgrade_smoke; sqlite_upgrade_smoke()"
+bench --site pm.local migrate
+bench --site pm.local run-tests --app property_management --case TestRentInvoiceKeyPlan
+bench --site pm.local run-tests --app property_management --case TestRentInvoiceKeyBackfill
+```
+
 ## Not in this version
 
 No desk pages and no financial-position or flat-profitability reports.
 
 ## Verification
 
-Phase 5 tests were not executed in this environment. On pm.local, deploy this branch and run:
+`sqlite_upgrade_smoke` passed in this environment. It reproduces `Cannot add a UNIQUE column`, then adds plain columns, fills keys, and creates the unique indexes without deleting rows. The Frappe site tests were not run here. On the restored Phase 4 copy, deploy this branch and run:
 
 ```bash
 bench --site pm.local migrate
