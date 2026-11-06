@@ -2,7 +2,11 @@ import frappe
 from frappe import _
 from frappe.utils import flt, getdate
 
-from property_management.finance import apply_invoice_allocation, post_financial_transaction
+from property_management.finance import (
+	allow_reversal_transaction_link,
+	apply_invoice_allocation,
+	post_financial_transaction,
+)
 from property_management.hierarchy import OwnedDocument, apply_owner, require_readable
 
 
@@ -57,6 +61,7 @@ class RentPayment(OwnedDocument):
 
 	def on_cancel(self):
 		"""Restore invoice balances and append Payment Reversal rows. The receipt rows stay."""
+		allow_reversal_transaction_link(self)
 		for row in self.allocations:
 			apply_invoice_allocation(row.rent_invoice, -flt(row.allocated_amount))
 			invoice = frappe.db.get_value(

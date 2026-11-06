@@ -2,7 +2,11 @@ import frappe
 from frappe import _
 from frappe.utils import flt, getdate
 
-from property_management.finance import location_from_allocation, post_financial_transaction
+from property_management.finance import (
+	allow_reversal_transaction_link,
+	location_from_allocation,
+	post_financial_transaction,
+)
 from property_management.hierarchy import OwnedDocument, copy_owner_from
 
 
@@ -70,6 +74,7 @@ class RentInvoice(OwnedDocument):
 		self.status = "Cancelled"
 
 	def on_cancel(self):
+		allow_reversal_transaction_link(self)
 		post_financial_transaction(
 			transaction_type="Receivable Adjustment",
 			amount=-flt(self.rent_amount),

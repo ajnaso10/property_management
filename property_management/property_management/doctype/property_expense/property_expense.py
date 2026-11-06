@@ -2,7 +2,7 @@ import frappe
 from frappe import _
 from frappe.utils import flt, getdate
 
-from property_management.finance import post_financial_transaction
+from property_management.finance import allow_reversal_transaction_link, post_financial_transaction
 from property_management.hierarchy import OwnedDocument, copy_owner_from, require_readable
 
 CATEGORIES = {
@@ -41,6 +41,8 @@ class PropertyExpense(OwnedDocument):
 
 	def on_cancel(self):
 		# Original Expense transaction stays submitted. This row is the audit reversal.
+		# The source is already cancelled when this runs, so the reversal links to that history.
+		allow_reversal_transaction_link(self)
 		self._post_transaction(-flt(self.amount), _("Reversal of expense {0}").format(self.name))
 
 	def on_trash(self):

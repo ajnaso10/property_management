@@ -30,7 +30,35 @@ class FinancialTransaction(OwnedDocument):
 			self.transaction_number = self.name
 		if self.docstatus == 0:
 			self.status = "Draft"
+		self._validate_reference_owner()
 		self._reject_edits_after_submit()
+
+	def get_invalid_links(self, *args, **kwargs):
+		"""Keep every link check, except the cancelled-document ban on the audit reference.
+
+		A reversal is posted from on_cancel, after Frappe has already saved the source
+		as cancelled. `reference_name` is the history pointer to that source. Other
+		links, including a missing reference, are still rejected.
+		"""
+		invalid_links, cancelled_links = super().get_invalid_links(*args, **kwargs)
+		cancelled_links = [link for link in cancelled_links if link[0] != "reference_name"]
+		return invalid_links, cancelled_links
+
+	def _validate_reference_owner(self):
+		if not self.reference_doctype or not self.reference_name:
+			return
+		if not frappe.db.exists(self.reference_doctype, self.reference_name):
+			frappe.throw(
+				_("Reference {0} {1} was not found.").format(self.reference_doctype, self.reference_name)
+			)
+		if not frappe.get_meta(self.reference_doctype).has_field("owner_user"):
+			return
+		referenced_owner = frappe.db.get_value(self.reference_doctype, self.reference_name, "owner_user")
+		if referenced_owner and referenced_owner != self.owner_user:
+			frappe.throw(
+				_("Reference {0} {1} belongs to another user.").format(self.reference_doctype, self.reference_name),
+				frappe.PermissionError,
+			)
 
 	def before_submit(self):
 		self.status = "Submitted"
