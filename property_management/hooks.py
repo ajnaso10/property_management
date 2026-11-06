@@ -78,6 +78,7 @@ add_to_apps_screen = [
 	}
 ]
 
+app_include_css = "/assets/property_management/css/desk.css"
 app_include_js = "/assets/property_management/js/password_gate.js"
 web_include_js = "/assets/property_management/js/login.js"
 

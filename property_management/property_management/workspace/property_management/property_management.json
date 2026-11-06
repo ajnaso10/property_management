@@ -1,6 +1,6 @@
 {
  "charts": [],
- "content": "[{\"id\":\"pmHeader\",\"type\":\"header\",\"data\":{\"text\":\"Property Management\",\"col\":12}},{\"id\":\"pmProperties\",\"type\":\"card\",\"data\":{\"card_name\":\"Properties\",\"col\":4}},{\"id\":\"pmPeople\",\"type\":\"card\",\"data\":{\"card_name\":\"People\",\"col\":4}},{\"id\":\"pmSetup\",\"type\":\"card\",\"data\":{\"card_name\":\"Setup\",\"col\":4}}]",
+ "content": "[{\"id\":\"pm-header\",\"type\":\"header\",\"data\":{\"text\":\"Property Management\",\"col\":12}},{\"id\":\"pm-sc-admin\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Super Admin Panel\",\"col\":3}},{\"id\":\"pm-sc-user\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"User Report\",\"col\":3}},{\"id\":\"pm-sc-buildings\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Buildings\",\"col\":3}},{\"id\":\"pm-sc-allocations\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Bed Allocations\",\"col\":3}},{\"id\":\"pm-card-overview\",\"type\":\"card\",\"data\":{\"card_name\":\"Overview\",\"col\":4}},{\"id\":\"pm-card-property\",\"type\":\"card\",\"data\":{\"card_name\":\"Property\",\"col\":4}},{\"id\":\"pm-card-tenants\",\"type\":\"card\",\"data\":{\"card_name\":\"Tenants\",\"col\":4}},{\"id\":\"pm-card-rent\",\"type\":\"card\",\"data\":{\"card_name\":\"Rent\",\"col\":4}},{\"id\":\"pm-card-money\",\"type\":\"card\",\"data\":{\"card_name\":\"Deposits and expenses\",\"col\":4}},{\"id\":\"pm-card-accounts\",\"type\":\"card\",\"data\":{\"card_name\":\"Accounts\",\"col\":4}}]",
  "creation": "2026-11-06 00:00:00",
  "custom_blocks": [],
  "doctype": "Workspace",
@@ -14,8 +14,36 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Properties",
+   "label": "Overview",
+   "link_count": 2,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Super Admin Panel",
    "link_count": 0,
+   "link_to": "super-admin-panel",
+   "link_type": "Page",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "User Report",
+   "link_count": 0,
+   "link_to": "user-report",
+   "link_type": "Page",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Property",
+   "link_count": 4,
    "onboard": 0,
    "type": "Card Break"
   },
@@ -62,8 +90,8 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "People",
-   "link_count": 0,
+   "label": "Tenants",
+   "link_count": 3,
    "onboard": 0,
    "type": "Card Break"
   },
@@ -90,8 +118,104 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Setup",
+   "label": "Monthly Revenue",
    "link_count": 0,
+   "link_to": "Monthly Revenue",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Rent",
+   "link_count": 3,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Rent Invoice",
+   "link_count": 0,
+   "link_to": "Rent Invoice",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Rent Payment",
+   "link_count": 0,
+   "link_to": "Rent Payment",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Rent Billing Log",
+   "link_count": 0,
+   "link_to": "Rent Billing Log",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Deposits and expenses",
+   "link_count": 4,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Tenant Deposit",
+   "link_count": 0,
+   "link_to": "Tenant Deposit",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Deposit Transaction",
+   "link_count": 0,
+   "link_to": "Deposit Transaction",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Property Expense",
+   "link_count": 0,
+   "link_to": "Property Expense",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Cash Bank Account",
+   "link_count": 0,
+   "link_to": "Cash Bank Account",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Accounts",
+   "link_count": 2,
    "onboard": 0,
    "type": "Card Break"
   },
@@ -124,19 +248,43 @@
  "quick_lists": [],
  "roles": [
   {
-   "role": "System Manager"
-  },
-  {
    "role": "Property Super Admin"
   },
   {
    "role": "Property User"
+  },
+  {
+   "role": "System Manager"
   }
  ],
  "sequence_id": 10.0,
+ "shortcuts": [
+  {
+   "doc_view": "",
+   "label": "Super Admin Panel",
+   "link_to": "super-admin-panel",
+   "type": "Page"
+  },
+  {
+   "doc_view": "",
+   "label": "User Report",
+   "link_to": "user-report",
+   "type": "Page"
+  },
+  {
+   "doc_view": "List",
+   "label": "Buildings",
+   "link_to": "Building",
+   "type": "DocType"
+  },
+  {
+   "doc_view": "List",
+   "label": "Bed Allocations",
+   "link_to": "Bed Allocation",
+   "type": "DocType"
+  }
+ ],
  "standard": 1,
- "shortcuts": [],
- "states": [],
  "title": "Property Management",
  "type": "Workspace"
 }
