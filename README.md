@@ -2,7 +2,7 @@
 
 Standalone [Frappe Framework](https://frappeframework.com) v16 app for a property super admin and the people who run buildings. It does not depend on ERPNext, and it does not post journal entries.
 
-Phase 1 is accounts. Phase 2 is the building hierarchy. Phase 3 is tenant placement and vacating. Phase 4 records rent, deposits, and expenses as transactions. There is still no monthly billing run and no general-ledger accounts.
+Phase 1 is accounts. Phase 2 is the building hierarchy. Phase 3 is tenant placement and vacating. Phase 4 records rent, deposits, and expenses as transactions. Phase 5 generates monthly rent invoices. Phase 6 is the Super Admin Panel and the User Report. There is no chart of accounts and no ERPNext ledger.
 
 ## What you can do
 
@@ -11,6 +11,7 @@ Phase 1 is accounts. Phase 2 is the building hierarchy. Phase 3 is tenant placem
 - Create a property user. The username is the mobile number. The initial password is set with Frappe's password API, not a custom field.
 - Move the account expiry date, deactivate the user, or set a new temporary password.
 - See every building, flat, area, bed, tenant, and allocation.
+- Open **Super Admin Panel** to create logins and read total and user-wise figures.
 
 **Property User**
 
@@ -18,7 +19,8 @@ Phase 1 is accounts. Phase 2 is the building hierarchy. Phase 3 is tenant placem
 - Must replace the temporary password before using the desk.
 - Cannot use Forgot Password. A Property Super Admin resets it.
 - Creates buildings, then flats, areas, and beds, and names a tenant on a vacant bed.
-- Sees only records whose Owner User is themselves. That filter is applied in the database and again when a document is opened.
+- Sees only records whose Owner User is themselves. That filter is applied in the database, again when a document is opened, and again by the desk overview even if a request names someone else's building.
+- Open **User Report** for that hierarchy, allocations, rent schedules, collections, deposits, and expenses.
 
 Login is refused when Account Expiry is before today. The expiry date itself is still a valid day.
 
@@ -26,7 +28,7 @@ Login is refused when Account Expiry is before today. The expiry date itself is 
 
 | DocType | Purpose |
 | --- | --- |
-| Property Settings | Billing day (1–28) and a prorate flag. Neither is used to create charges yet. |
+| Property Settings | Billing day (1–31, clamped to the month), due days after billing, and partial-month proration. Defaults are day 1, 7 days, and proration on. |
 | Property User Profile | One row per property login: mobile, expiry, enabled, must-change-password. |
 | Building | Name, code, address, location, status, owner. |
 | Flat | Flat number under a building. Area and bed counts are calculated. |
@@ -173,6 +175,13 @@ The suite covers:
 - A rent payment cannot be allocated above the invoice outstanding or the payment amount
 - An expense posts an Expense transaction, and cancelling it posts the opposite amount without editing the first
 - Vacating a bed does not change a rent invoice outstanding
+- Desk overview totals are zero for a property user with no records, and the default period is the current month
+- Recognized rent, collections, expenses, and operating profit follow submitted transactions, including negative reversals
+- A deposit receipt is not profit; a transfer to revenue is
+- Vacating stops the fixed-rent schedule and leaves the open receivable
+- A property user cannot read another user's totals, buildings, or account list, including a forged filter
+- A caller who is not a property user or super admin cannot open the overview
+- Super Admin Panel excludes the Property User role; User Report includes it
 
 These tests need a migrated site. They were not executed in the environment that added the app, because that machine has Python 3.12 and Frappe v16 requires Python 3.14.
 
@@ -244,15 +253,68 @@ bench --site pm.local run-tests --app property_management --case TestRentInvoice
 bench --site pm.local run-tests --app property_management --case TestRentInvoiceKeyBackfill
 ```
 
+## Phase checklist
+
+| Phase | In this branch |
+| --- | --- |
+| 1. Accounts, mobile username, expiry, first-login password change | Yes |
+| 2. Building, flat, area, bed, and owner isolation | Yes |
+| 3. Tenant, allocation, vacate | Yes |
+| 4. Rent, deposits, expenses, and reversals | Yes |
+| 5. Monthly rent billing and the invoice-key upgrade | Yes, from `main` at `e11e35b22cecc74a792425193fe00ef4f5396cb2` |
+| 6. Super Admin Panel and User Report | Yes |
+| 7. Full report set and charts | Not started |
+
+## Phase 6
+
+Two standard desk pages, plus the Property Management workspace and sidebar:
+
+- **Super Admin Panel** (`/app/super-admin-panel`) is limited to Property Super Admin and System Manager. It creates a property user, resets the temporary password, moves expiry, and activates or deactivates the account. Those actions call the existing account APIs. The password is not written on the profile and is not returned to the page.
+- **User Report** (`/app/user-report`) is for a Property User, and a Property Super Admin can open it too. It lists that owner's buildings, flats, areas, and beds, and links to the real forms for tenants, allocations, vacate, rent schedules, collections, deposit receipt, refund, transfer to revenue, and expenses.
+
+A property user who still has to change the temporary password is kept on `/property-password`. The pages do not call the overview until that flag is clear. An expired or deactivated account cannot sign in.
+
+The overview reads the database. An empty portfolio is zero, not a sample figure. The date filter defaults to the current calendar month. Occupancy, monthly fixed rent, open receivables, and held deposits are current balances. Recognized rent, collections, deposit movements, and expenses use the selected dates.
+
+| Figure | Meaning |
+| --- | --- |
+| Monthly fixed rent | `monthly_rent` on Active Monthly Revenue schedules. Vacated schedules are stopped and drop out. Submitted invoices stay as they were. |
+| Recognized rental revenue | Submitted Rent Generated plus Receivable Adjustment in the date range. Cancelling an invoice posts the negative adjustment on the invoice billing date. |
+| Rent collected | Submitted Rent Received plus Payment Reversal in the date range. This is cash, not a second copy of revenue. |
+| Allocated receipts | Invoice Allocation rows on submitted payments in the range. Cancelled payments are excluded. |
+| Advances | Payment amount minus its allocations. Full allocation is required, so this is zero unless cash is left unapplied. It is not revenue. |
+| Outstanding in period | Remaining balance on submitted invoices billed in the range. |
+| All open receivables | Remaining balance on every submitted invoice in the filter. Vacate does not clear it. |
+| Held deposits | Deposit Received minus Deposit Refunded minus Deposit Transferred to Revenue, ignoring the date range. Held money is not revenue. |
+| Operating profit | Recognized rental revenue + deposit transferred to revenue + other revenue − expenses. |
+
+The same words are returned by `property_management.desk.get_overview` in `measures`. A Property User who sends another user's id, or another user's building, flat, or area, is rejected. A Property Super Admin can choose one property user or leave the user blank for every account. The user-wise rows use the same measures.
+
+Manual check, as Administrator or a Property Super Admin:
+
+```bash
+bench --site pm.local execute property_management.desk.get_overview
+bench --site pm.local execute property_management.desk.list_property_accounts
+```
+
+`get_overview` accepts `owner_user`, `building`, `flat`, `area`, `from_date`, and `to_date`.
+
 ## Not in this version
 
-No desk pages and no financial-position or flat-profitability reports.
+The long report list and the chart set are not in this branch. The pages show the operating figures above and link to the documents. They do not invent those reports.
+
+## Navigation sync
+
+Frappe reimports a standard Workspace only when the file is newer than the row already on the site. This workspace file does not set `modified`, so a migrate compares the current time with the stored row and reloads the file. A site that already had the older DocType-only workspace picks up the Super Admin Panel and User Report links. A later migrate reloads the same file again; `for_reload` replaces the row without the link check that would block it. The standard Dock is `property_management/dock/property_management/property_management.json` and points at the Property Management sidebar, which is what a new site uses to open the module.
 
 ## Verification
 
-`sqlite_upgrade_smoke` passed in this environment. It reproduces `Cannot add a UNIQUE column`, then adds plain columns, fills keys, and creates the unique indexes without deleting rows. The Frappe site tests were not run here. On the restored Phase 4 copy, deploy this branch and run:
+The invoice-key migration on `main` was already verified on a Phase 4 copy and on the live site. This merge was not retested on a Frappe site. On pm.local, check out this branch and run:
 
 ```bash
 bench --site pm.local migrate
+bench --site pm.local clear-cache
 bench --site pm.local run-tests --app property_management
 ```
+
+Then sign in and open `/app/property-management`, `/app/super-admin-panel`, and `/app/user-report`. A property user's first login still stops at `/property-password` until the temporary password is replaced. The automated tests do not click through the desk.
