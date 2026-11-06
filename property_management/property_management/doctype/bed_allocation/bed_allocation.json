@@ -18,6 +18,7 @@
   "flat",
   "building",
   "money_section",
+  "generate_rent",
   "monthly_rent",
   "deposit_amount",
   "billing_start_date",
@@ -113,6 +114,13 @@
    "fieldname": "money_section",
    "fieldtype": "Section Break",
    "label": "Agreed amounts"
+  },
+  {
+   "default": "1",
+   "description": "Turned off by Vacate. A later billing phase must skip this row. No invoice is created here, and open amounts are not written off.",
+   "fieldname": "generate_rent",
+   "fieldtype": "Check",
+   "label": "Generate Rent"
   },
   {
    "description": "Stored for a later billing phase. Vacating does not clear it, and nothing posts it to a ledger.",

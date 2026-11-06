@@ -9,6 +9,7 @@
   "tenant_name",
   "mobile",
   "status",
+  "current_bed",
   "column_break_main",
   "owner_user",
   "identification_number",
@@ -36,6 +37,7 @@
   },
   {
    "default": "Active",
+   "description": "Active while the tenant can be placed or is on a bed. Vacated after the last allocation closes. Inactive cannot be allocated.",
    "fieldname": "status",
    "fieldtype": "Select",
    "in_list_view": 1,
@@ -43,6 +45,13 @@
    "label": "Status",
    "options": "Active\nVacated\nInactive",
    "reqd": 1
+  },
+  {
+   "fieldname": "current_bed",
+   "fieldtype": "Link",
+   "label": "Current Bed",
+   "options": "Bed",
+   "read_only": 1
   },
   {
    "fieldname": "column_break_main",
@@ -61,7 +70,9 @@
    "fieldname": "identification_number",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Identification Number"
+   "in_standard_filter": 1,
+   "label": "Identification Number",
+   "reqd": 1
   },
   {
    "fieldname": "details_section",

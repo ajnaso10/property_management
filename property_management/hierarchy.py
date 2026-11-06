@@ -152,13 +152,17 @@ def refresh_counts_for_bed(bed):
 
 
 def sync_bed_occupancy(bed):
-	"""Reflect the active allocation, if any. Rent and deposit rows are left in place."""
+	"""Reflect the active allocation, if any. Historical rows and amounts stay put.
+
+	TODO Phase 4–5: do not write off receivables, deposits, or monthly rent here.
+	Vacate only clears occupancy pointers and stops future rent generation.
+	"""
 	if not bed or not frappe.db.exists("Bed", bed):
 		return
 	active = frappe.db.get_value(
 		"Bed Allocation",
 		{"bed": bed, "allocation_status": "Active"},
-		["tenant", "monthly_rent"],
+		["name", "tenant", "monthly_rent"],
 		as_dict=True,
 	)
 	if active:
@@ -168,6 +172,7 @@ def sync_bed_occupancy(bed):
 			{
 				"occupancy_status": "Occupied",
 				"current_tenant": active.tenant,
+				"current_allocation": active.name,
 				"monthly_rent": active.monthly_rent,
 			},
 			update_modified=False,
@@ -177,7 +182,11 @@ def sync_bed_occupancy(bed):
 		frappe.db.set_value(
 			"Bed",
 			bed,
-			{"occupancy_status": "Vacant", "current_tenant": None},
+			{
+				"occupancy_status": "Vacant",
+				"current_tenant": None,
+				"current_allocation": None,
+			},
 			update_modified=False,
 		)
 	refresh_counts_for_bed(bed)
@@ -187,13 +196,51 @@ def refresh_tenant_status(tenant):
 	if not tenant or not frappe.db.exists("Tenant", tenant):
 		return
 	current = frappe.db.get_value("Tenant", tenant, "status")
-	if current == "Inactive":
-		return
-	active = frappe.db.exists("Bed Allocation", {"tenant": tenant, "allocation_status": "Active"})
+	active_bed = frappe.db.get_value(
+		"Bed Allocation", {"tenant": tenant, "allocation_status": "Active"}, "bed"
+	)
+	if active_bed:
+		status = "Active"
+	elif current == "Inactive":
+		status = "Inactive"
+	else:
+		status = "Vacated"
 	frappe.db.set_value(
 		"Tenant",
 		tenant,
-		"status",
-		"Active" if active else "Vacated",
+		{"status": status, "current_bed": active_bed},
 		update_modified=False,
 	)
+
+
+def allocation_generates_rent(allocation):
+	"""Whether a later billing run should create rent for this allocation.
+
+	Vacate sets Generate Rent off. This version does not create invoices.
+	TODO Phase 4–5: do not write off open receivables when this returns false.
+	"""
+	if not allocation:
+		return False
+	return bool(cint(frappe.db.get_value("Bed Allocation", allocation, "generate_rent")))
+
+
+_ALLOCATION_OWNER_FIELD = {
+	"Building": "building",
+	"Flat": "flat",
+	"Area": "area",
+	"Bed": "bed",
+	"Tenant": "tenant",
+}
+
+
+def prevent_delete_with_allocation_history(doc, method=None):
+	"""Keep Building, Flat, Area, Bed, and Tenant when any allocation row points at them."""
+	fieldname = _ALLOCATION_OWNER_FIELD.get(getattr(doc, "doctype", None))
+	if not fieldname or not doc.get("name"):
+		return
+	if frappe.db.exists("Bed Allocation", {fieldname: doc.name}):
+		frappe.throw(
+			_(
+				"{0} {1} has bed allocation history and cannot be deleted. Vacate ends occupancy and keeps that history."
+			).format(doc.doctype, doc.name)
+		)

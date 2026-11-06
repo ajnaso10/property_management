@@ -16,6 +16,7 @@ class BedAllocation(OwnedDocument):
 	def validate(self):
 		if not self.allocation_status:
 			self.allocation_status = "Active"
+		self._reject_reopening()
 		copy_owner_from(self, "Bed", self.bed)
 		bed = frappe.db.get_value(
 			"Bed",
@@ -32,10 +33,15 @@ class BedAllocation(OwnedDocument):
 		assert_non_negative(self, "monthly_rent", "deposit_amount")
 
 		if self.allocation_status == "Active":
+			if self.generate_rent is None:
+				self.generate_rent = 1
 			self._validate_active_allocation(bed)
 		elif self.allocation_status == "Vacated":
 			if not self.vacating_date:
-				self.vacating_date = today()
+				frappe.throw(_("Vacating Date is required."))
+			# Stop future rent. Historical monthly_rent and deposit_amount stay on this row.
+			# TODO Phase 4–5: do not write off receivables when Generate Rent is turned off.
+			self.generate_rent = 0
 		else:
 			frappe.throw(_("Allocation Status must be Active or Vacated."))
 
@@ -52,19 +58,37 @@ class BedAllocation(OwnedDocument):
 
 	@frappe.whitelist(methods=["POST"])
 	def vacate(self, vacating_date=None):
-		"""Close occupancy. Rent and deposit on this row are kept."""
+		"""Close occupancy and keep this row.
+
+		The bed becomes Vacant and loses Current Tenant and Current Allocation.
+		Generate Rent is turned off so a later billing run skips this row.
+		TODO Phase 4–5: do not write off receivables or zero deposit_amount / monthly_rent.
+		"""
 		self.check_permission("write")
 		if self.allocation_status != "Active":
 			frappe.throw(_("Only an active allocation can be vacated."))
+		if not vacating_date:
+			frappe.throw(_("Vacating Date is required."))
 		self.allocation_status = "Vacated"
-		self.vacating_date = getdate(vacating_date) if vacating_date else today()
+		self.vacating_date = getdate(vacating_date)
+		self.generate_rent = 0
 		self.save()
 		return {
 			"name": self.name,
 			"allocation_status": self.allocation_status,
 			"vacating_date": str(self.vacating_date),
 			"bed": self.bed,
+			"generate_rent": 0,
 		}
+
+	def _reject_reopening(self):
+		if self.is_new() or not self.name:
+			return
+		previous = frappe.db.get_value("Bed Allocation", self.name, "allocation_status")
+		if previous == "Vacated" and self.allocation_status == "Active":
+			frappe.throw(
+				_("A vacated allocation stays on record. Create a new allocation to place the tenant again.")
+			)
 
 	def _validate_tenant(self):
 		if not self.tenant:

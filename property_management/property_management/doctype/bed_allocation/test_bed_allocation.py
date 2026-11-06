@@ -1,6 +1,6 @@
 import frappe
 from frappe.tests.classes.integration_test_case import IntegrationTestCase
-from frappe.utils import flt
+from frappe.utils import cint, flt, today
 
 from property_management.testing import make_allocation, make_bed_stack, make_property_user, make_tenant, unique_digits
 
@@ -57,18 +57,25 @@ class TestBedAllocation(IntegrationTestCase):
 		self.assertEqual(self.bed.occupancy_status, "Occupied")
 		self.assertEqual(self.bed.current_tenant, tenant.name)
 
-		allocation.vacate()
+		with self.assertRaises(frappe.ValidationError):
+			allocation.vacate()
+
+		allocation.vacate(vacating_date=today())
 		allocation.reload()
 		self.bed.reload()
 		tenant.reload()
 
 		self.assertEqual(allocation.allocation_status, "Vacated")
-		self.assertTrue(allocation.vacating_date)
+		self.assertEqual(str(allocation.vacating_date), str(today()))
+		self.assertEqual(cint(allocation.generate_rent), 0)
 		self.assertEqual(flt(allocation.monthly_rent), 1800)
 		self.assertEqual(flt(allocation.deposit_amount), 750)
+		self.assertTrue(frappe.db.exists("Bed Allocation", allocation.name))
 		self.assertEqual(self.bed.occupancy_status, "Vacant")
 		self.assertFalse(self.bed.current_tenant)
+		self.assertFalse(self.bed.current_allocation)
 		self.assertEqual(tenant.status, "Vacated")
+		self.assertFalse(tenant.current_bed)
 
 		replacement = make_tenant("Next Tenant")
 		again = make_allocation(self.bed.name, replacement.name)
@@ -76,3 +83,80 @@ class TestBedAllocation(IntegrationTestCase):
 		self.assertEqual(again.allocation_status, "Active")
 		self.assertEqual(self.bed.occupancy_status, "Occupied")
 		self.assertEqual(self.bed.current_tenant, replacement.name)
+		self.assertEqual(self.bed.current_allocation, again.name)
+
+	def test_maintenance_bed_cannot_be_allocated(self):
+		self.bed.occupancy_status = "Maintenance"
+		self.bed.save()
+		tenant = make_tenant("Maintenance Tenant")
+		with self.assertRaises(frappe.ValidationError):
+			make_allocation(self.bed.name, tenant.name)
+
+	def test_moving_a_tenant_keeps_both_allocations(self):
+		tenant = make_tenant("Moving Tenant")
+		first = make_allocation(self.bed.name, tenant.name, monthly_rent=1000, deposit_amount=200)
+		first.vacate(vacating_date=today())
+		second_bed = frappe.get_doc(
+			{
+				"doctype": "Bed",
+				"bed_number": "2",
+				"area": self.area.name,
+				"status": "Active",
+				"occupancy_status": "Vacant",
+			}
+		).insert()
+		second = make_allocation(second_bed.name, tenant.name, monthly_rent=1100, deposit_amount=200)
+
+		history = frappe.get_all(
+			"Bed Allocation",
+			filters={"tenant": tenant.name},
+			fields=["name", "allocation_status", "bed"],
+		)
+		self.assertEqual(len(history), 2)
+		first.reload()
+		second_bed.reload()
+		tenant.reload()
+		self.assertEqual(first.allocation_status, "Vacated")
+		self.assertEqual(cint(first.generate_rent), 0)
+		self.assertEqual(second.allocation_status, "Active")
+		self.assertEqual(second_bed.occupancy_status, "Occupied")
+		self.assertEqual(second_bed.current_allocation, second.name)
+		self.assertEqual(tenant.status, "Active")
+		self.assertEqual(tenant.current_bed, second_bed.name)
+		self.bed.reload()
+		self.assertEqual(self.bed.occupancy_status, "Vacant")
+		self.assertFalse(self.bed.current_allocation)
+
+		with self.assertRaises(frappe.ValidationError):
+			first.reload()
+			first.allocation_status = "Active"
+			first.vacating_date = None
+			first.save()
+
+	def test_allocation_history_blocks_delete(self):
+		tenant = make_tenant("Kept Tenant")
+		allocation = make_allocation(self.bed.name, tenant.name)
+		for doc in (self.building, self.flat, self.area, self.bed, tenant, allocation):
+			with self.assertRaises(frappe.ValidationError):
+				doc.delete()
+
+	def test_property_user_cannot_open_another_users_tenant_or_allocation(self):
+		frappe.set_user("Administrator")
+		other = make_property_user("Other Landlord")
+		frappe.set_user(other["user"])
+		_building, _flat, _area, bed = make_bed_stack(unique_digits(6))
+		tenant = make_tenant("Hidden Tenant")
+		allocation = make_allocation(bed.name, tenant.name)
+
+		frappe.set_user(self.owner["user"])
+		self.assertEqual(frappe.get_list("Tenant", filters={"name": tenant.name}, pluck="name"), [])
+		self.assertFalse(frappe.has_permission("Tenant", "read", tenant.name))
+		with self.assertRaises(frappe.PermissionError):
+			frappe.get_doc("Tenant", tenant.name)
+		self.assertEqual(
+			frappe.get_list("Bed Allocation", filters={"name": allocation.name}, pluck="name"),
+			[],
+		)
+		self.assertFalse(frappe.has_permission("Bed Allocation", "read", allocation.name))
+		with self.assertRaises(frappe.PermissionError):
+			frappe.get_doc("Bed Allocation", allocation.name)

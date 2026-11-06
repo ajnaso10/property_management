@@ -2,7 +2,7 @@
 
 Standalone [Frappe Framework](https://frappeframework.com) v16 app for a property super admin and the people who run buildings. It does not depend on ERPNext, and it does not post journal entries.
 
-Phase 1 is accounts. Phase 2 is the building hierarchy and bed occupancy. Expenses, deposits, receipts, and profitability reports are not in this version. Agreed rent and deposit amounts are stored on Bed Allocation so a later phase can bill them. Vacating a bed does not delete that row and does not zero those amounts.
+Phase 1 is accounts. Phase 2 is the building hierarchy. Phase 3 is tenant placement and vacating. Expenses, deposits, receipts, and profitability reports are not in this version. Agreed rent and deposit amounts stay on each Bed Allocation. Vacating a bed does not delete that row and does not zero those amounts.
 
 ## What you can do
 
@@ -32,8 +32,8 @@ Login is refused when Account Expiry is before today. The expiry date itself is 
 | Flat | Flat number under a building. Area and bed counts are calculated. |
 | Area | Bedroom, hall, kitchen, shared area, or other. Bed counts are calculated. |
 | Bed | Bed number, occupancy (Vacant / Occupied / Maintenance), current tenant, monthly rent. |
-| Tenant | Name, mobile, identification number, address, emergency contact. |
-| Bed Allocation | Tenant on a bed, dates, monthly rent, deposit amount. Vacate closes occupancy. |
+| Tenant | Name, mobile, identification number, address, emergency contact, status, current bed. |
+| Bed Allocation | One stay on a bed. Several vacated rows can exist for the same tenant. Only one is Active per bed. |
 
 A property user cannot delete a Bed Allocation. Vacate is the way out, so the row remains.
 
@@ -132,7 +132,7 @@ As the property user:
 2. Add one or more Flats.
 3. Add one or more Areas in a flat (bedroom, hall, kitchen, shared area, other).
 4. Add one or more Beds in an area.
-5. Create a Tenant (name, mobile, and any ID details you have).
+5. Create a Tenant (name, mobile, and identification number).
 6. Create a Bed Allocation pointing at that tenant and a vacant bed.
 
 The same user can own many buildings. A flat, area, bed, or allocation takes its Owner User from its parent, so a property user cannot attach their flat to someone else's building.
@@ -141,8 +141,10 @@ Allocation rules:
 
 - The bed, area, flat, and building must be Active.
 - The bed must be Vacant. Maintenance is not allocatable.
-- One active allocation per bed, and one active allocation per tenant.
-- **Vacate** on the allocation sets the vacating date, marks the allocation Vacated, sets the bed back to Vacant, and clears Current Tenant. Monthly rent and deposit amount stay on the allocation. The tenant record stays; its status becomes Vacated when no active allocation remains.
+- One active allocation per bed, and one active allocation per tenant. Older vacated rows stay.
+- To move a tenant, vacate the current allocation, then create a new one on the other bed.
+- **Vacate** asks for a vacating date, marks that allocation Vacated, turns off Generate Rent, sets the bed to Vacant, and clears Current Tenant and Current Allocation. Monthly rent and deposit amount stay on the allocation. Nothing writes off a balance. The tenant becomes Vacated when no active allocation remains, and Active again on the next allocation.
+- Building, Flat, Area, Bed, Tenant, and Bed Allocation cannot be deleted once an allocation exists.
 
 Flat and area bed counts are recalculated from Bed rows.
 
@@ -162,7 +164,11 @@ The suite covers:
 - Property user A cannot list or open property user B's building; a Property Super Admin can
 - A second active allocation on the same bed is rejected, including after occupancy was forced back to Vacant
 - An inactive area or flat cannot receive an allocation
-- Vacate frees the bed, keeps rent and deposit, and a later allocation can use the bed
+- Vacate requires a date, frees the bed, keeps rent and deposit, and a later allocation can use the bed
+- A tenant can move beds; both allocation rows remain, and a vacated row cannot be reopened
+- A maintenance bed cannot be allocated
+- Building, flat, area, bed, tenant, and allocation rows with history cannot be deleted
+- A property user cannot open another user's tenant or bed allocation
 
 These tests need a migrated site. They were not executed in the environment that added the app, because that machine has Python 3.12 and Frappe v16 requires Python 3.14.
 
@@ -175,6 +181,12 @@ The app blocks property accounts. It does not remove Frappe's own login page.
 - A direct visit to `/update-password?key=...` does not complete for these accounts.
 - Administrator, and a Property Super Admin who has no Property User Profile, still use Frappe's own reset.
 - The supported login is the mobile number. The synthetic email is the User id, so Frappe will also accept it at the login form. Prefer the mobile number.
+
+## Phase 3
+
+Tenants need a mobile number and an identification number. Status is Active (can be placed, or currently placed), Vacated (last stay closed), or Inactive (cannot be placed). Owner User isolation uses the same document-load check as buildings.
+
+Bed Allocation is the stay history. Vacate is the button on that form and `Bed Allocation.vacate`. It requires a vacating date and sets Generate Rent to off so a later billing run can skip the row. `allocation_generates_rent` is the hook that run will read. Phase 4–5 must not treat that flag as a write-off of rent or deposit.
 
 ## Not in this version
 

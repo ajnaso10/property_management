@@ -1,4 +1,9 @@
-from property_management.hierarchy import OwnedDocument, apply_owner, assert_unique
+from property_management.hierarchy import (
+	OwnedDocument,
+	apply_owner,
+	assert_unique,
+	prevent_delete_with_allocation_history,
+)
 
 
 class Building(OwnedDocument):
@@ -13,3 +18,6 @@ class Building(OwnedDocument):
 			{"owner_user": self.owner_user},
 			self.name,
 		)
+
+	def on_trash(self):
+		prevent_delete_with_allocation_history(self)

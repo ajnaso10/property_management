@@ -6,6 +6,7 @@ from property_management.hierarchy import (
 	assert_non_negative,
 	assert_unique,
 	copy_owner_from,
+	prevent_delete_with_allocation_history,
 	refresh_counts_for_bed,
 )
 
@@ -33,6 +34,9 @@ class Bed(OwnedDocument):
 	def on_update(self):
 		refresh_counts_for_bed(self.name)
 
+	def on_trash(self):
+		prevent_delete_with_allocation_history(self)
+
 	def after_delete(self):
 		from property_management.hierarchy import update_area_counts, update_flat_counts
 
@@ -45,12 +49,13 @@ class Bed(OwnedDocument):
 			active = frappe.db.get_value(
 				"Bed Allocation",
 				{"bed": self.name, "allocation_status": "Active"},
-				["tenant", "monthly_rent"],
+				["name", "tenant", "monthly_rent"],
 				as_dict=True,
 			)
 		if active:
 			self.occupancy_status = "Occupied"
 			self.current_tenant = active.tenant
+			self.current_allocation = active.name
 			if active.monthly_rent is not None:
 				self.monthly_rent = active.monthly_rent
 			return
@@ -60,3 +65,4 @@ class Bed(OwnedDocument):
 		if self.occupancy_status not in ("Vacant", "Maintenance"):
 			self.occupancy_status = "Vacant"
 		self.current_tenant = None
+		self.current_allocation = None

@@ -4,6 +4,7 @@ from property_management.hierarchy import (
 	OwnedDocument,
 	assert_unique,
 	copy_owner_from,
+	prevent_delete_with_allocation_history,
 	update_area_counts,
 	update_flat_counts,
 )
@@ -26,6 +27,9 @@ class Area(OwnedDocument):
 	def on_update(self):
 		update_area_counts(self.name)
 		update_flat_counts(self.flat)
+
+	def on_trash(self):
+		prevent_delete_with_allocation_history(self)
 
 	def after_delete(self):
 		update_flat_counts(self.flat)

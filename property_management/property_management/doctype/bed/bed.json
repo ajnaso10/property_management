@@ -15,6 +15,7 @@
   "status",
   "occupancy_status",
   "current_tenant",
+  "current_allocation",
   "rent_section",
   "monthly_rent"
  ],
@@ -91,6 +92,13 @@
    "fieldtype": "Link",
    "label": "Current Tenant",
    "options": "Tenant",
+   "read_only": 1
+  },
+  {
+   "fieldname": "current_allocation",
+   "fieldtype": "Link",
+   "label": "Current Allocation",
+   "options": "Bed Allocation",
    "read_only": 1
   },
   {

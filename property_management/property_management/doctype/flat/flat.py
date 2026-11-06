@@ -1,4 +1,10 @@
-from property_management.hierarchy import OwnedDocument, assert_unique, copy_owner_from, update_flat_counts
+from property_management.hierarchy import (
+	OwnedDocument,
+	assert_unique,
+	copy_owner_from,
+	prevent_delete_with_allocation_history,
+	update_flat_counts,
+)
 
 
 class Flat(OwnedDocument):
@@ -16,3 +22,6 @@ class Flat(OwnedDocument):
 
 	def on_update(self):
 		update_flat_counts(self.name)
+
+	def on_trash(self):
+		prevent_delete_with_allocation_history(self)
