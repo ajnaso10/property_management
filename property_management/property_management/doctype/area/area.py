@@ -1,7 +1,7 @@
 import frappe
-from frappe.model.document import Document
 
 from property_management.hierarchy import (
+	OwnedDocument,
 	assert_unique,
 	copy_owner_from,
 	update_area_counts,
@@ -9,7 +9,7 @@ from property_management.hierarchy import (
 )
 
 
-class Area(Document):
+class Area(OwnedDocument):
 	def validate(self):
 		if not self.status:
 			self.status = "Active"

@@ -1,9 +1,9 @@
 import frappe
 from frappe import _
-from frappe.model.document import Document
 from frappe.utils import getdate, today
 
 from property_management.hierarchy import (
+	OwnedDocument,
 	assert_non_negative,
 	assert_status_active,
 	copy_owner_from,
@@ -12,7 +12,7 @@ from property_management.hierarchy import (
 )
 
 
-class BedAllocation(Document):
+class BedAllocation(OwnedDocument):
 	def validate(self):
 		if not self.allocation_status:
 			self.allocation_status = "Active"

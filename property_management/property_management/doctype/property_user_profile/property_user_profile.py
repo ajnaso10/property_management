@@ -1,12 +1,12 @@
 import frappe
 from frappe import _
-from frappe.model.document import Document
 from frappe.utils import cint, getdate
 
 from property_management.auth import normalize_mobile
+from property_management.hierarchy import OwnedDocument
 
 
-class PropertyUserProfile(Document):
+class PropertyUserProfile(OwnedDocument):
 	def validate(self):
 		if not self.user:
 			frappe.throw(_("User is required"))

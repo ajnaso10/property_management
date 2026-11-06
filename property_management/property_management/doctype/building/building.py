@@ -1,10 +1,7 @@
-import frappe
-from frappe.model.document import Document
-
-from property_management.hierarchy import apply_owner, assert_unique
+from property_management.hierarchy import OwnedDocument, apply_owner, assert_unique
 
 
-class Building(Document):
+class Building(OwnedDocument):
 	def validate(self):
 		if not self.status:
 			self.status = "Active"

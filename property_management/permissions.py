@@ -48,11 +48,21 @@ def has_permission(doc, ptype=None, user=None, debug=False):
 	if not is_property_user(user):
 		return False
 
-	owner = doc.get(owner_field(doc.doctype))
+	owner = _stored_owner(doc)
 	if not owner:
 		# Unsaved documents get their owner in validate, which runs after the create check.
 		return bool(doc.get("__islocal") or (hasattr(doc, "is_new") and doc.is_new()))
 	return owner == user
+
+
+def _stored_owner(doc):
+	"""Use the database owner for a saved row so a client payload cannot claim it."""
+	fieldname = owner_field(doc.doctype)
+	if not doc.get("__islocal") and doc.get("name"):
+		stored = frappe.db.get_value(doc.doctype, doc.name, fieldname)
+		if stored:
+			return stored
+	return doc.get(fieldname)
 
 
 def has_app_permission():

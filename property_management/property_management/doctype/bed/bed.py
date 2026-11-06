@@ -1,8 +1,8 @@
 import frappe
 from frappe import _
-from frappe.model.document import Document
 
 from property_management.hierarchy import (
+	OwnedDocument,
 	assert_non_negative,
 	assert_unique,
 	copy_owner_from,
@@ -10,7 +10,7 @@ from property_management.hierarchy import (
 )
 
 
-class Bed(Document):
+class Bed(OwnedDocument):
 	def validate(self):
 		if not self.status:
 			self.status = "Active"

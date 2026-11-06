@@ -42,8 +42,21 @@ class TestBuilding(IntegrationTestCase):
 		frappe.set_user(user_b["user"])
 		visible = frappe.get_list("Building", filters={"name": building.name}, pluck="name")
 		self.assertEqual(visible, [])
+		self.assertFalse(frappe.has_permission("Building", "read", building.name))
 		with self.assertRaises(frappe.PermissionError):
 			frappe.get_doc("Building", building.name)
+		forged = frappe.get_doc(
+			{
+				"doctype": "Building",
+				"name": building.name,
+				"building_name": "Stolen",
+				"building_code": building.building_code,
+				"status": "Active",
+				"owner_user": user_b["user"],
+			}
+		)
+		with self.assertRaises(frappe.PermissionError):
+			forged.save()
 
 		frappe.clear_cache(user=super_admin)
 		frappe.set_user(super_admin)

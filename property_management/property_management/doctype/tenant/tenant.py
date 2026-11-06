@@ -1,11 +1,8 @@
-import frappe
-from frappe.model.document import Document
-
 from property_management.auth import normalize_mobile
-from property_management.hierarchy import apply_owner, assert_unique
+from property_management.hierarchy import OwnedDocument, apply_owner, assert_unique
 
 
-class Tenant(Document):
+class Tenant(OwnedDocument):
 	def validate(self):
 		if not self.status:
 			self.status = "Active"

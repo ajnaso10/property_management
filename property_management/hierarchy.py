@@ -1,8 +1,44 @@
+import sys
+
 import frappe
 from frappe import _
+from frappe.model.document import Document
 from frappe.utils import cint, flt
 
 from property_management.permissions import is_privileged
+
+
+class OwnedDocument(Document):
+	"""Document whose rows are private to Owner User.
+
+	Frappe v16.53 `get_doc(doctype, name)` loads the row and does not check
+	permissions unless the caller passes `check_permission`. List queries still
+	hide the name, so the remaining leak is opening a known name. Checking on
+	load closes `get_doc`, form load, and the resource API together.
+
+	`frappe.has_permission(doctype, perm, name)` loads the same row through
+	`get_lazy_doc` only to evaluate the hook. That fetch must not raise, or the
+	permission call itself would error instead of returning False.
+	"""
+
+	def load_from_db(self):
+		super().load_from_db()
+		if self.flags.ignore_permissions or frappe.flags.get("ignore_permissions"):
+			return
+		if frappe.flags.in_install or frappe.flags.in_migrate or frappe.flags.in_patch:
+			return
+		if _called_from_get_lazy_doc():
+			return
+		self.check_permission("read")
+
+
+def _called_from_get_lazy_doc():
+	frame = sys._getframe()
+	while frame is not None:
+		if frame.f_code.co_name == "get_lazy_doc":
+			return True
+		frame = frame.f_back
+	return False
 
 
 def apply_owner(doc):
