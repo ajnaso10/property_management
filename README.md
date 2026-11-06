@@ -320,6 +320,10 @@ bench --site pm.local execute property_management.analytics.run_report --kwargs 
 
 Phase 8 is not started. These reports are the views above, not a padded list of duplicate layouts. There is no cash-profit statement, no apportioned overhead, and no historical occupancy rate built from today's bed counts.
 
+## Navigation sync
+
+Frappe reimports a standard Workspace only when the file is newer than the row already on the site. This workspace file does not set `modified`, so a migrate compares the current time with the stored row and reloads the file. A site that already had the older DocType-only workspace picks up the Super Admin Panel and User Report links. A later migrate reloads the same file again; `for_reload` replaces the row without the link check that would block it. The standard Dock is `property_management/dock/property_management/property_management.json` and points at the Property Management sidebar, which is what a new site uses to open the module.
+
 ## Verification
 
 Phase 6 and Phase 7 files were syntax-checked here (`py_compile` and `node --check`). This environment has Python 3.12 and no Frappe site, so `bench migrate` and `bench run-tests` were not run here. Nothing was deployed.
