@@ -39,6 +39,8 @@ permission_query_conditions = {
 	"Tenant Deposit": "property_management.permissions.query_tenant_deposit",
 	"Deposit Transaction": "property_management.permissions.query_deposit_transaction",
 	"Property Expense": "property_management.permissions.query_property_expense",
+	"Monthly Revenue": "property_management.permissions.query_monthly_revenue",
+	"Rent Billing Log": "property_management.permissions.query_rent_billing_log",
 }
 
 has_permission = {
@@ -56,6 +58,14 @@ has_permission = {
 	"Tenant Deposit": "property_management.permissions.has_permission",
 	"Deposit Transaction": "property_management.permissions.has_permission",
 	"Property Expense": "property_management.permissions.has_permission",
+	"Monthly Revenue": "property_management.permissions.has_permission",
+	"Rent Billing Log": "property_management.permissions.has_permission",
+}
+
+scheduler_events = {
+	"daily": [
+		"property_management.billing.generate_due_rent_invoices",
+	],
 }
 
 add_to_apps_screen = [

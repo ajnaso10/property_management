@@ -203,6 +203,35 @@ Money is a list of Financial Transaction rows, not debit and credit accounts. Ea
 
 Cash/Bank Account is only a name and a type, Cash or Bank.
 
+## Phase 5
+
+Rent is generated per calendar month for an active bed allocation. Property Settings holds the rules:
+
+- Billing Day, default 1. A shorter month uses its last day, so 31 is allowed.
+- Due Days After Billing, default 7. The due date is that many days after the later of the billing date and the first occupied day in the month.
+- Prorate Partial Months, default on. Occupied days in the month divided by the number of days in that month. When it is off, any overlapping month is billed at the full monthly rent.
+
+An active allocation with Generate Rent on gets one Monthly Revenue schedule. Rent revisions are effective-dated and do not rewrite a submitted invoice. Vacate sets the schedule end date and still allows the final overlapping month. It does not change outstanding amounts.
+
+The daily job is `property_management.billing.generate_due_rent_invoices`. It catches up any missed months. A Property Super Admin, or a Property User for their own schedules, can run the same job by hand:
+
+```bash
+bench --site property.localhost execute property_management.billing.generate_due_rent_invoices
+```
+
+From the desk or a console session, the whitelisted method is `property_management.billing.generate_rent_invoices` with an optional `as_of` date and an optional `monthly_revenue` name. `property_management.billing.revise_rent` adds a later rate.
+
+Each attempt is a Rent Billing Log row: Success, Skipped, or Failed. A failed period is rolled back to a savepoint and can be run again. The invoice key is the allocation plus `YYYY-MM`, so a repeated run does not create a second invoice.
+
 ## Not in this version
 
-No scheduled monthly billing, no desk pages, and no financial-position or flat-profitability reports. Property Settings still only stores the billing day and prorate flag for a later phase.
+No desk pages and no financial-position or flat-profitability reports.
+
+## Verification
+
+Phase 5 tests were not executed in this environment. On pm.local, deploy this branch and run:
+
+```bash
+bench --site pm.local migrate
+bench --site pm.local run-tests --app property_management
+```

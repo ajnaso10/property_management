@@ -32,6 +32,8 @@ class RentInvoice(OwnedDocument):
 			frappe.throw(_("Due Date cannot be before Billing Date."))
 		if self.name and not self.invoice_number:
 			self.invoice_number = self.name
+		if self.bed_allocation and self.billing_month:
+			self.billing_key = f"{self.bed_allocation}-{self.billing_month}"
 		if flt(self.amount_paid) < 0:
 			frappe.throw(_("Amount Paid cannot be negative."))
 		self.outstanding = flt(self.rent_amount) - flt(self.amount_paid)
