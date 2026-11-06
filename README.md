@@ -182,6 +182,11 @@ The suite covers:
 - A property user cannot read another user's totals, buildings, or account list, including a forged filter
 - A caller who is not a property user or super admin cannot open the overview
 - Super Admin Panel excludes the Property User role; User Report includes it
+- Financial Position matches the desk overview for the same owner and month
+- Flat profit excludes building overhead, and a cancelled expense nets once
+- A property user cannot read another user's report or chart, including a forged filter
+- Occupancy counts are current, while vacated stays still appear from allocation dates
+- An empty portfolio is zero
 
 These tests need a migrated site. They were not executed in the environment that added the app, because that machine has Python 3.12 and Frappe v16 requires Python 3.14.
 
@@ -242,7 +247,8 @@ Each attempt is a Rent Billing Log row: Success, Skipped, or Failed. A failed pe
 | 4. Rent, deposits, expenses, and reversals | Yes |
 | 5. Monthly rent billing | Yes, parent commit `9dceb5762a683c3a53d5a5f7a563b142468c916b` |
 | 6. Super Admin Panel and User Report | Yes |
-| 7. Full report set and charts | Not started |
+| 7. Reports and overview charts | Yes |
+| 8. Further work | Not started |
 
 ## Phase 6
 
@@ -278,13 +284,47 @@ bench --site pm.local execute property_management.desk.list_property_accounts
 
 `get_overview` accepts `owner_user`, `building`, `flat`, `area`, `from_date`, and `to_date`.
 
+## Phase 7
+
+Reports use the same measures as the desk overview. A property user is limited to their own rows. A property super admin can leave the user blank for every account, or choose one. Forged user, building, flat, and area filters are rejected. The date range defaults to the current month. Snapshot figures ignore that range and are labelled Snapshot. Period figures use it and are labelled Period.
+
+Operating profit is recognized rental revenue, plus other revenue, plus deposit transferred to revenue, minus expenses. It is not cash profit. Held deposits, rent collected, and advances are separate. A reversal stays as its own negative transaction and is included once. Receivables for a vacated tenant stay in the open balance.
+
+Expenses with no flat are building overhead. Flat Profitability and Area Profitability do not spread that overhead across rows. Building Profitability includes it when no flat is selected, and shows it again in its own column without adding it twice. There is no invented split of a building bill onto flats.
+
+| Requested view | Report or chart |
+| --- | --- |
+| Total financial position | Financial Position |
+| Consolidated position | Financial Position with no property user selected |
+| User-wise position | User-wise Financial Summary |
+| Flat profitability | Flat Profitability, and the Flat Direct Profit chart |
+| Building profitability | Building Profitability |
+| Area profitability | Area Profitability |
+| Rent invoiced, collected, outstanding | Rent Position |
+| Deposit liability and history | Deposit Liability |
+| Expenses | Expense Register |
+| Occupancy and vacancy | Occupancy, and the Current Occupancy chart |
+| Transaction history | Transaction History. This is not a debit and credit ledger |
+| Tenant history | Tenant History, including vacated stays and open receivables |
+| Monthly invoiced revenue, collections, expenses, and profit | Monthly Property Movement chart |
+
+The monthly chart defaults to the six months ending this month. Each point is that month's movement, not a balance. Current Occupancy is the beds right now. It is not a past occupancy rate. Stays in the Occupancy report come from allocation dates, including a vacated row.
+
+Open them from the Property Management workspace or sidebar, or the Property Overview dashboard.
+
+```bash
+bench --site pm.local execute property_management.analytics.run_report --kwargs "{'report': 'financial_position', 'filters': {}}"
+```
+
 ## Not in this version
 
-The long report list and the chart set are not in this branch. The pages show the operating figures above and link to the documents. They do not invent those reports.
+Phase 8 is not started. These reports are the views above, not a padded list of duplicate layouts. There is no cash-profit statement, no apportioned overhead, and no historical occupancy rate built from today's bed counts.
 
 ## Verification
 
-These pages were syntax-checked here. This environment has Python 3.12 and no Frappe site, and Frappe v16 needs Python 3.14, so `bench migrate` and `bench run-tests` were not run here. Nothing was deployed.
+Phase 6 and Phase 7 files were syntax-checked here (`py_compile` and `node --check`). This environment has Python 3.12 and no Frappe site, so `bench migrate` and `bench run-tests` were not run here. Nothing was deployed.
+
+On a Frappe 16.53 SQLite site, the Phase 5 suite at `9dceb5762a683c3a53d5a5f7a563b142468c916b` was reported as 32 passed, including the billing tests. A clean production database migration of the unique billing key was not part of that run. This branch does not change that billing key.
 
 On pm.local, after this branch is checked out:
 

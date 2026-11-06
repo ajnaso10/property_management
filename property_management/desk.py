@@ -443,6 +443,8 @@ def _monthly_fixed_rent(scope):
 
 def _outstanding(scope, dated):
 	filters = {**_location_filters(scope), "docstatus": 1}
+	if getattr(scope, "tenant", None):
+		filters["tenant"] = scope.tenant
 	if dated:
 		filters["billing_date"] = ["between", [scope.from_date, scope.to_date]]
 	rows = frappe.get_all("Rent Invoice", filters=filters, fields=["outstanding"])
@@ -459,6 +461,8 @@ def _sum_transactions(scope, types, dated):
 		filters["flat"] = scope.flat
 	if scope.area:
 		filters["area"] = scope.area
+	if getattr(scope, "tenant", None):
+		filters["tenant"] = scope.tenant
 	if dated:
 		filters["posting_date"] = ["between", [scope.from_date, scope.to_date]]
 	rows = frappe.get_all("Financial Transaction", filters=filters, fields=["amount"])
@@ -469,6 +473,8 @@ def _collection_split(scope):
 	filters = {"docstatus": 1, "posting_date": ["between", [scope.from_date, scope.to_date]]}
 	if scope.owner:
 		filters["owner_user"] = scope.owner
+	if getattr(scope, "tenant", None):
+		filters["tenant"] = scope.tenant
 	payments = frappe.get_all("Rent Payment", filters=filters, fields=["name", "amount", "owner_user"])
 	allocated_total = 0.0
 	advances = 0.0

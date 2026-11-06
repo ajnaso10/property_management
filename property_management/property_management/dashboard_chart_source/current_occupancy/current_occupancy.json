@@ -1,0 +1,7 @@
+{
+ "doctype": "Dashboard Chart Source",
+ "module": "Property Management",
+ "name": "Current Occupancy",
+ "source_name": "Current Occupancy",
+ "timeseries": 0
+}

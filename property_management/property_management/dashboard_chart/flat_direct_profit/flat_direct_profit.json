@@ -1,0 +1,25 @@
+{
+ "chart_name": "Flat Direct Profit",
+ "chart_type": "Custom",
+ "doctype": "Dashboard Chart",
+ "empty_state_message": "Direct operating profit by flat for the selected dates. Expenses with no flat are not included.",
+ "filters_json": "{}",
+ "is_public": 1,
+ "is_standard": 1,
+ "module": "Property Management",
+ "name": "Flat Direct Profit",
+ "roles": [
+  {
+   "role": "Property User"
+  },
+  {
+   "role": "Property Super Admin"
+  },
+  {
+   "role": "System Manager"
+  }
+ ],
+ "source": "Flat Direct Profit",
+ "timeseries": 0,
+ "type": "Bar"
+}

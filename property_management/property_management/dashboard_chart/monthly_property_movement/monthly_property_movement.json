@@ -1,0 +1,25 @@
+{
+ "chart_name": "Monthly Property Movement",
+ "chart_type": "Custom",
+ "doctype": "Dashboard Chart",
+ "empty_state_message": "Recognized rent, rent collected, expenses, and operating profit for each month. Operating profit is not cash profit. The default range is the six months ending this month.",
+ "filters_json": "{}",
+ "is_public": 1,
+ "is_standard": 1,
+ "module": "Property Management",
+ "name": "Monthly Property Movement",
+ "roles": [
+  {
+   "role": "Property User"
+  },
+  {
+   "role": "Property Super Admin"
+  },
+  {
+   "role": "System Manager"
+  }
+ ],
+ "source": "Monthly Property Movement",
+ "timeseries": 0,
+ "type": "Bar"
+}
