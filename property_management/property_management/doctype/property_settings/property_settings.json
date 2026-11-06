@@ -1,0 +1,70 @@
+{
+ "actions": [],
+ "creation": "2026-11-06 00:00:00",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "billing_section",
+  "billing_day",
+  "prorate_partial_months"
+ ],
+ "fields": [
+  {
+   "fieldname": "billing_section",
+   "fieldtype": "Section Break",
+   "label": "Billing defaults"
+  },
+  {
+   "default": "1",
+   "description": "Day of the month rent falls due. Stored for a later billing phase. No invoices are created yet.",
+   "fieldname": "billing_day",
+   "fieldtype": "Int",
+   "label": "Billing Day",
+   "reqd": 1
+  },
+  {
+   "default": "0",
+   "description": "When a later phase bills a partial month, prorate the rent. Nothing reads this flag yet.",
+   "fieldname": "prorate_partial_months",
+   "fieldtype": "Check",
+   "label": "Prorate Partial Months"
+  }
+ ],
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-11-06 00:00:00.000000",
+ "module": "Property Management",
+ "name": "Property Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Property Super Admin",
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "Property User"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
