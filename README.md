@@ -146,6 +146,7 @@ Allocation rules:
 - One active allocation per bed, and one active allocation per tenant. Older vacated rows stay.
 - To move a tenant, vacate the current allocation, then create a new one on the other bed.
 - **Vacate** asks for a vacating date, marks that allocation Vacated, turns off Generate Rent, sets the bed to Vacant, and clears Current Tenant and Current Allocation. Monthly rent and deposit amount stay on the allocation. Nothing writes off a balance. The tenant becomes Vacated when no active allocation remains, and Active again on the next allocation.
+- Vacating is refused while **this stay** has a submitted rent invoice with a remaining balance, including an earlier month of the same allocation. The bed, the schedule, and the allocation stay as they were. Paying the invoice, or cancelling an unpaid invoice so its reversal clears the balance, is required first. A deposit is not applied to the rent. Another stay, or another owner's invoices, are not part of this check.
 - Building, Flat, Area, Bed, Tenant, and Bed Allocation cannot be deleted once an allocation exists.
 
 Flat and area bed counts are recalculated from Bed rows.
@@ -166,7 +167,7 @@ The suite covers:
 - Property user A cannot list or open property user B's building; a Property Super Admin can
 - A second active allocation on the same bed is rejected, including after occupancy was forced back to Vacant
 - An inactive area or flat cannot receive an allocation
-- Vacate requires a date, frees the bed, keeps rent and deposit, and a later allocation can use the bed
+- Vacate requires a date, refuses unpaid submitted rent on that stay, frees the bed once the rent is settled, keeps rent and deposit figures, and a later allocation can use the bed
 - A tenant can move beds; both allocation rows remain, and a vacated row cannot be reopened
 - A maintenance bed cannot be allocated
 - Building, flat, area, bed, tenant, and allocation rows with history cannot be deleted
@@ -174,11 +175,11 @@ The suite covers:
 - Deposit refunds and transfers cannot exceed the remaining balance, and a receipt is not rent revenue
 - A rent payment cannot be allocated above the invoice outstanding or the payment amount
 - An expense posts an Expense transaction, and cancelling it posts the opposite amount without editing the first
-- Vacating a bed does not change a rent invoice outstanding
+- Vacating is refused while that stay has submitted rent outstanding; it does not change an invoice balance
 - Desk overview totals are zero for a property user with no records, and the default period is the current month
 - Recognized rent, collections, expenses, and operating profit follow submitted transactions, including negative reversals
 - A deposit receipt is not profit; a transfer to revenue is
-- Vacating stops the fixed-rent schedule and leaves the open receivable
+- Vacating after the receivable is paid stops the fixed-rent schedule and leaves the paid invoice in place
 - A property user cannot read another user's totals, buildings, or account list, including a forged filter
 - A caller who is not a property user or super admin cannot open the overview
 - Super Admin Panel excludes the Property User role; User Report includes it
@@ -204,7 +205,7 @@ The app blocks property accounts. It does not remove Frappe's own login page.
 
 Tenants need a mobile number and an identification number. Status is Active (can be placed, or currently placed), Vacated (last stay closed), or Inactive (cannot be placed). Owner User isolation uses the same document-load check as buildings.
 
-Bed Allocation is the stay history. Vacate is the button on that form and `Bed Allocation.vacate`. It requires a vacating date and sets Generate Rent to off so a later billing run can skip the row. `allocation_generates_rent` is the hook that run will read. Phase 4–5 must not treat that flag as a write-off of rent or deposit.
+Bed Allocation is the stay history. Vacate is the button on that form, the same action on User Report, and `Bed Allocation.vacate`. Setting Allocation Status to Vacated on the document is the same rule. It requires a vacating date and sets Generate Rent to off. `allocation_generates_rent` is the hook a later billing run reads. Turning that flag off is not a write-off.
 
 ## Phase 4
 
@@ -213,9 +214,23 @@ Money is a list of Financial Transaction rows, not debit and credit accounts. Ea
 - Rent Invoice submit posts Rent Generated. Rent Payment submit posts Rent Received and updates the invoice paid and outstanding amounts. A payment cannot exceed an invoice balance or the payment amount.
 - Tenant Deposit receipts post Deposit Received. That is not rent. Refunds and transfers cannot exceed the remaining balance. Only Transfer to Revenue posts Deposit Transferred to Revenue.
 - Property Expense submit posts Expense. Cancelling it posts a second Expense transaction for the opposite amount. The first transaction stays.
-- Vacate does not change invoice outstanding. `leave_receivables_unchanged` is called from Vacate and does nothing to balances.
+- Vacate does not change invoice outstanding. `assert_rent_settled_for_vacate` refuses the stay when any submitted invoice for that allocation still has a balance. `leave_receivables_unchanged` does nothing to balances. A deposit receipt, refund, or transfer does not pay rent.
 
 Cash/Bank Account is only a name and a type, Cash or Bank.
+
+### Vacating when rent is unpaid
+
+This is a behavior change from the earlier build, which allowed vacate while invoices were still unpaid and left that balance in place. Vacate now stops before any occupancy or schedule change when this stay's submitted rent is not settled.
+
+What counts:
+
+- The stay is the Bed Allocation being vacated, including earlier months of that same allocation. Another allocation for the same tenant, and every other owner's invoices, are outside the check.
+- A submitted invoice with outstanding greater than zero blocks vacate. Partial payment leaves a balance, so it still blocks. Full payment allows vacate. The paid invoice stays submitted.
+- Cancelling an unpaid invoice posts a Receivable Adjustment and sets outstanding to zero. That cancellation is an explicit reversal, and vacate is then allowed. Cancelling a payment restores outstanding, and vacate is refused again until the invoice is settled.
+- A draft invoice is not a receivable. It does not block vacate, and vacate does not delete or submit it. Submitting that draft after vacate can leave unpaid rent on an already vacated stay.
+- Rent that has not been invoiced yet does not block vacate. The daily billing job can still create the final overlapping month after vacate. That new invoice is unpaid until a rent payment. Vacate does not generate it and does not collect it.
+- A deposit receipt, refund, or transfer to revenue does not pay rent and does not make vacate succeed.
+- A later save of an allocation that is already Vacated is not checked again. There is no migration that rewrites existing vacated stays or invoice balances.
 
 ## Phase 5
 
@@ -225,7 +240,7 @@ Rent is generated per calendar month for an active bed allocation. Property Sett
 - Due Days After Billing, default 7. The due date is that many days after the later of the billing date and the first occupied day in the month.
 - Prorate Partial Months, default on. Occupied days in the month divided by the number of days in that month. When it is off, any overlapping month is billed at the full monthly rent.
 
-An active allocation with Generate Rent on gets one Monthly Revenue schedule. Rent revisions are effective-dated and do not rewrite a submitted invoice. Vacate sets the schedule end date and still allows the final overlapping month. It does not change outstanding amounts.
+An active allocation with Generate Rent on gets one Monthly Revenue schedule. Rent revisions are effective-dated and do not rewrite a submitted invoice. Vacate sets the schedule end date only after submitted rent for that stay is settled, and it still allows the billing job to create the final overlapping month afterward. That later invoice is new unpaid rent; vacate does not collect it. Vacate does not change outstanding amounts.
 
 The daily job is `property_management.billing.generate_due_rent_invoices`. It catches up any missed months. A Property Super Admin, or a Property User for their own schedules, can run the same job by hand:
 
@@ -290,7 +305,7 @@ The overview reads the database. An empty portfolio is zero, not a sample figure
 | Allocated receipts | Invoice Allocation rows on submitted payments in the range. Cancelled payments are excluded. |
 | Advances | Payment amount minus its allocations. Full allocation is required, so this is zero unless cash is left unapplied. It is not revenue. |
 | Outstanding in period | Remaining balance on submitted invoices billed in the range. |
-| All open receivables | Remaining balance on every submitted invoice in the filter. Vacate does not clear it. |
+| All open receivables | Remaining balance on every submitted invoice in the filter. Vacate is refused while the stay being vacated has a balance, and vacate does not clear one. |
 | Held deposits | Deposit Received minus Deposit Refunded minus Deposit Transferred to Revenue, ignoring the date range. Held money is not revenue. |
 | Operating profit | Recognized rental revenue + deposit transferred to revenue + other revenue − expenses. |
 
@@ -309,7 +324,7 @@ bench --site pm.local execute property_management.desk.list_property_accounts
 
 Reports use the same measures as the desk overview. A property user is limited to their own rows. A property super admin can leave the user blank for every account, or choose one. Forged user, building, flat, and area filters are rejected. The date range defaults to the current month. Snapshot figures ignore that range and are labelled Snapshot. Period figures use it and are labelled Period.
 
-Operating profit is recognized rental revenue, plus other revenue, plus deposit transferred to revenue, minus expenses. It is not cash profit. Held deposits, rent collected, and advances are separate. A reversal stays as its own negative transaction and is included once. Receivables for a vacated tenant stay in the open balance.
+Operating profit is recognized rental revenue, plus other revenue, plus deposit transferred to revenue, minus expenses. It is not cash profit. Held deposits, rent collected, and advances are separate. A reversal stays as its own negative transaction and is included once. An open receivable stays in this balance until a payment or an invoice cancellation posts its reversal. Vacating does not remove it.
 
 Expenses with no flat are building overhead. Flat Profitability and Area Profitability do not spread that overhead across rows. Building Profitability includes it when no flat is selected, and shows it again in its own column without adding it twice. There is no invented split of a building bill onto flats.
 

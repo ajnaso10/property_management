@@ -219,19 +219,27 @@ class TestDeskPages(IntegrationTestCase):
 		with self.assertRaises(frappe.ValidationError):
 			get_overview(from_date=today(), to_date=prior)
 
-	def test_vacating_stops_fixed_rent_and_leaves_the_receivable(self):
+	def test_vacating_stops_fixed_rent_after_the_receivable_is_paid(self):
 		frappe.set_user(self.owner_a["user"])
 		invoice = self.make_invoice(self.allocation_a.name, self.tenant_a.name, 1000, today())
 		before = get_overview()
 		self.assertEqual(flt(before["money"]["monthly_fixed_rent"]), 1800)
 		self.assertEqual(flt(before["occupancy"]["beds_occupied"]), 1)
+		with self.assertRaises(frappe.ValidationError):
+			self.allocation_a.vacate(vacating_date=today())
+		self.allocation_a.reload()
+		self.assertEqual(self.allocation_a.allocation_status, "Active")
+		self.assertEqual(flt(get_overview()["money"]["outstanding_open"]), 1000)
+		self.make_payment(self.tenant_a.name, self.cash_a.name, 1000, invoice.name)
 		self.allocation_a.vacate(vacating_date=today())
 		after = get_overview()
 		self.assertEqual(flt(after["money"]["monthly_fixed_rent"]), 0)
 		self.assertEqual(flt(after["occupancy"]["beds_occupied"]), 0)
-		self.assertEqual(flt(after["money"]["outstanding_open"]), 1000)
+		self.assertEqual(flt(after["money"]["outstanding_open"]), 0)
 		invoice.reload()
-		self.assertEqual(flt(invoice.outstanding), 1000)
+		self.assertEqual(invoice.docstatus, 1)
+		self.assertEqual(invoice.status, "Paid")
+		self.assertEqual(flt(invoice.outstanding), 0)
 		operations = get_operations()
 		statuses = {row["name"]: row["status"] for row in operations["schedules"]["rows"]}
 		schedule = frappe.db.get_value("Monthly Revenue", {"bed_allocation": self.allocation_a.name}, "name")

@@ -40,7 +40,7 @@ class BedAllocation(OwnedDocument):
 			if not self.vacating_date:
 				frappe.throw(_("Vacating Date is required."))
 			# Stop future rent. Historical monthly_rent and deposit_amount stay on this row.
-			# TODO Phase 4–5: do not write off receivables when Generate Rent is turned off.
+			self._reject_unpaid_rent_on_vacate()
 			self.generate_rent = 0
 		else:
 			frappe.throw(_("Allocation Status must be Active or Vacated."))
@@ -59,24 +59,33 @@ class BedAllocation(OwnedDocument):
 			)
 		)
 
+	def _reject_unpaid_rent_on_vacate(self):
+		"""Block the transition to Vacated. A later save of an already vacated stay is not rechecked."""
+		from property_management.finance import assert_rent_settled_for_vacate
+
+		if self.name and not self.is_new():
+			previous = frappe.db.get_value("Bed Allocation", self.name, "allocation_status")
+			if previous == "Vacated":
+				return
+		assert_rent_settled_for_vacate(self.name)
+
 	@frappe.whitelist(methods=["POST"])
 	def vacate(self, vacating_date=None):
 		"""Close occupancy and keep this row.
 
 		The bed becomes Vacant and loses Current Tenant and Current Allocation.
-		Generate Rent is turned off so a later billing run skips this row.
-		TODO Phase 4–5: do not write off receivables or zero deposit_amount / monthly_rent.
+		Generate Rent is turned off so a later billing run skips new months after
+		the vacating date. Submitted rent for this stay must already be settled.
+		Vacating does not pay, cancel, or delete invoices, and a deposit is not applied.
 		"""
 		self.check_permission("write")
 		if self.allocation_status != "Active":
 			frappe.throw(_("Only an active allocation can be vacated."))
 		if not vacating_date:
 			frappe.throw(_("Vacating Date is required."))
-		# Outstanding rent invoices and financial transactions stay as they are.
-		# TODO Phase 5: do not write off receivables here. Payments and explicit
-		# receivable adjustments are the only ways to change an invoice balance.
-		from property_management.finance import leave_receivables_unchanged
+		from property_management.finance import assert_rent_settled_for_vacate, leave_receivables_unchanged
 
+		assert_rent_settled_for_vacate(self.name)
 		leave_receivables_unchanged(self.name)
 		self.allocation_status = "Vacated"
 		self.vacating_date = getdate(vacating_date)

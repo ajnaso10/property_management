@@ -108,14 +108,244 @@ class TestFinancialTransaction(IntegrationTestCase):
 		with self.assertRaises(frappe.ValidationError):
 			extra.insert()
 
-	def test_vacate_leaves_invoice_outstanding(self):
+	def _stay_state(self):
+		self.allocation.reload()
+		self.bed.reload()
+		schedule = frappe.db.get_value(
+			"Monthly Revenue",
+			{"bed_allocation": self.allocation.name},
+			["status", "end_date"],
+			as_dict=True,
+		)
+		return {
+			"allocation_status": self.allocation.allocation_status,
+			"vacating_date": str(self.allocation.vacating_date or ""),
+			"generate_rent": int(self.allocation.generate_rent or 0),
+			"bed": self.bed.occupancy_status,
+			"current_tenant": self.bed.current_tenant,
+			"schedule_status": schedule.status if schedule else None,
+			"schedule_end": str(schedule.end_date or "") if schedule else "",
+		}
+
+	def test_unpaid_rent_on_this_stay_blocks_vacate_without_side_effects(self):
 		invoice = self.make_invoice(1000)
-		outstanding = flt(invoice.outstanding)
-		self.allocation.vacate(vacating_date=today())
+		earlier = self.make_invoice(250, month="2026-10")
+		before = self._stay_state()
+		self.assertEqual(before["allocation_status"], "Active")
+		self.assertEqual(before["bed"], "Occupied")
+		self.assertEqual(before["schedule_status"], "Active")
+
+		for attempt in (
+			lambda: self.allocation.vacate(vacating_date=today()),
+			lambda: self._save_as_vacated(),
+		):
+			with self.assertRaises(frappe.ValidationError) as refused:
+				attempt()
+			self.assertIn(invoice.name, str(refused.exception))
+			self.assertIn(earlier.name, str(refused.exception))
+			self.assertEqual(self._stay_state(), before)
+			invoice.reload()
+			earlier.reload()
+			self.assertEqual(flt(invoice.outstanding), 1000)
+			self.assertEqual(flt(earlier.outstanding), 250)
+			self.assertEqual(invoice.docstatus, 1)
+			self.assertEqual(earlier.docstatus, 1)
+
+		other_bed = frappe.get_doc(
+			{
+				"doctype": "Bed",
+				"bed_number": "Other Stay",
+				"area": self.area.name,
+				"status": "Active",
+				"occupancy_status": "Vacant",
+			}
+		).insert()
+		other_stay = make_allocation(
+			other_bed.name, make_tenant("Separate Stay").name, monthly_rent=700, deposit_amount=0
+		)
+		other_stay.vacate(vacating_date=today())
+		other_stay.reload()
+		self.assertEqual(other_stay.allocation_status, "Vacated")
+		self.assertEqual(self._stay_state(), before)
 		invoice.reload()
-		self.assertEqual(flt(invoice.outstanding), outstanding)
-		self.assertEqual(invoice.status, "Unpaid")
+		self.assertEqual(flt(invoice.outstanding), 1000)
+
+		partial = self.make_payment(400, [(invoice.name, 400)])
+		partial.insert()
+		partial.submit()
+		with self.assertRaises(frappe.ValidationError):
+			self.allocation.vacate(vacating_date=today())
+		self.assertEqual(self._stay_state(), before)
+		invoice.reload()
+		self.assertEqual(flt(invoice.outstanding), 600)
+		self.assertEqual(invoice.status, "Partly Paid")
+
+		deposit = frappe.get_doc(
+			{
+				"doctype": "Tenant Deposit",
+				"tenant": self.tenant.name,
+				"bed_allocation": self.allocation.name,
+			}
+		).insert()
+		receipt = frappe.get_doc(
+			{
+				"doctype": "Deposit Transaction",
+				"tenant_deposit": deposit.name,
+				"transaction_type": "Receipt",
+				"posting_date": "2026-11-06",
+				"amount": 1000,
+				"payment_mode": "Cash",
+				"cash_bank_account": self.cash.name,
+			}
+		).insert()
+		receipt.submit()
+		with self.assertRaises(frappe.ValidationError):
+			self.allocation.vacate(vacating_date=today())
+		deposit.reload()
+		self.assertEqual(flt(deposit.balance), 1000)
+		self.assertEqual(self._stay_state(), before)
+
+	def _save_as_vacated(self):
+		self.allocation.reload()
+		self.allocation.allocation_status = "Vacated"
+		self.allocation.vacating_date = today()
+		self.allocation.save()
+
+	def test_settled_rent_allows_vacate_and_keeps_the_audit(self):
+		fresh_bed = frappe.get_doc(
+			{
+				"doctype": "Bed",
+				"bed_number": "No Invoice",
+				"area": self.area.name,
+				"status": "Active",
+				"occupancy_status": "Vacant",
+			}
+		).insert()
+		fresh = make_allocation(
+			fresh_bed.name, make_tenant("Zero Rent Tenant").name, monthly_rent=1000, deposit_amount=0
+		)
+		fresh.vacate(vacating_date=today())
+		fresh.reload()
+		fresh_bed.reload()
+		self.assertEqual(fresh.allocation_status, "Vacated")
+		self.assertEqual(fresh_bed.occupancy_status, "Vacant")
+
+		invoice = self.make_invoice(1000)
+		rest = self.make_payment(1000, [(invoice.name, 1000)])
+		rest.insert()
+		rest.submit()
+		invoice.reload()
+		self.assertEqual(flt(invoice.outstanding), 0)
+		self.allocation.vacate(vacating_date=today())
+		self.allocation.reload()
+		invoice.reload()
+		self.bed.reload()
+		self.assertEqual(self.allocation.allocation_status, "Vacated")
+		self.assertEqual(self.bed.occupancy_status, "Vacant")
 		self.assertEqual(invoice.docstatus, 1)
+		self.assertEqual(invoice.status, "Paid")
+		self.assertEqual(flt(invoice.outstanding), 0)
+		self.assertEqual(
+			frappe.db.get_value(
+				"Monthly Revenue", {"bed_allocation": self.allocation.name}, "status"
+			),
+			"Stopped",
+		)
+		self.assertTrue(
+			frappe.db.exists(
+				"Financial Transaction",
+				{"reference_name": invoice.name, "transaction_type": "Rent Generated", "docstatus": 1},
+			)
+		)
+
+	def test_reversal_and_cancellation_change_whether_vacate_is_allowed(self):
+		invoice = self.make_invoice(1000)
+		payment = self.make_payment(1000, [(invoice.name, 1000)])
+		payment.insert()
+		payment.submit()
+		payment.cancel()
+		invoice.reload()
+		self.assertEqual(flt(invoice.outstanding), 1000)
+		self.assertEqual(invoice.status, "Unpaid")
+		before = self._stay_state()
+		with self.assertRaises(frappe.ValidationError):
+			self.allocation.vacate(vacating_date=today())
+		self.assertEqual(self._stay_state(), before)
+
+		invoice.cancel()
+		invoice.reload()
+		self.assertEqual(invoice.docstatus, 2)
+		self.assertEqual(flt(invoice.outstanding), 0)
+		self.allocation.vacate(vacating_date=today())
+		self.allocation.reload()
+		invoice.reload()
+		self.assertEqual(self.allocation.allocation_status, "Vacated")
+		self.assertEqual(invoice.docstatus, 2)
+		self.assertTrue(
+			frappe.db.exists(
+				"Financial Transaction",
+				{
+					"reference_name": invoice.name,
+					"transaction_type": "Receivable Adjustment",
+					"docstatus": 1,
+				},
+			)
+		)
+
+	def test_draft_does_not_block_vacate_and_another_stay_is_separate(self):
+		draft = frappe.get_doc(
+			{
+				"doctype": "Rent Invoice",
+				"tenant": self.tenant.name,
+				"bed_allocation": self.allocation.name,
+				"billing_month": "2026-11",
+				"billing_date": "2026-11-01",
+				"due_date": "2026-11-10",
+				"rent_amount": 1000,
+			}
+		).insert()
+		self.assertEqual(draft.docstatus, 0)
+		self.allocation.vacate(vacating_date=today())
+		draft.reload()
+		self.allocation.reload()
+		self.assertEqual(draft.docstatus, 0)
+		self.assertEqual(flt(draft.outstanding), 1000)
+		self.assertEqual(self.allocation.allocation_status, "Vacated")
+
+		other_bed = frappe.get_doc(
+			{
+				"doctype": "Bed",
+				"bed_number": "Vacate Scope",
+				"area": self.area.name,
+				"status": "Active",
+				"occupancy_status": "Vacant",
+			}
+		).insert()
+		other_tenant = make_tenant("Other Stay Tenant")
+		other_stay = make_allocation(other_bed.name, other_tenant.name, monthly_rent=800, deposit_amount=0)
+		other_stay.vacate(vacating_date=today())
+		other_stay.reload()
+		draft.reload()
+		self.assertEqual(other_stay.allocation_status, "Vacated")
+		self.assertEqual(draft.docstatus, 0)
+		self.assertEqual(flt(draft.outstanding), 1000)
+
+	def test_another_owners_unpaid_rent_does_not_affect_this_vacate(self):
+		invoice = self.make_invoice(1000)
+		frappe.set_user("Administrator")
+		other = make_property_user("Other Finance Landlord")
+		frappe.set_user(other["user"])
+		_building, _flat, _area, bed = make_bed_stack(unique_digits(6))
+		tenant = make_tenant("Other Finance Tenant")
+		allocation = make_allocation(bed.name, tenant.name, monthly_rent=500, deposit_amount=0)
+		allocation.vacate(vacating_date=today())
+		allocation.reload()
+		self.assertEqual(allocation.allocation_status, "Vacated")
+		frappe.set_user(self.owner["user"])
+		invoice.reload()
+		self.allocation.reload()
+		self.assertEqual(flt(invoice.outstanding), 1000)
+		self.assertEqual(self.allocation.allocation_status, "Active")
 
 	def test_deposit_balance_rules(self):
 		deposit = frappe.get_doc(

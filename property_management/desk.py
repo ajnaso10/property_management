@@ -51,7 +51,7 @@ MEASURES = {
 	),
 	"outstanding_open": (
 		"Outstanding still open on every submitted Rent Invoice in the filter. The date range is ignored. "
-		"Vacating a bed does not clear it."
+		"Vacating is refused while the stay being vacated still has a balance here. Vacating does not clear it."
 	),
 	"held_deposits": (
 		"All submitted Deposit Received, minus Deposit Refunded, minus Deposit Transferred to Revenue, in the filter. "

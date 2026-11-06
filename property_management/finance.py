@@ -6,10 +6,53 @@ from frappe.utils import flt, getdate, today
 def leave_receivables_unchanged(bed_allocation):
 	"""Vacate must not write off rent invoices or financial transactions.
 
-	TODO Phase 5: billing may stop future rent because Generate Rent is off.
-	Outstanding invoices stay until a payment or an explicit receivable adjustment.
+	Unpaid submitted rent blocks vacating in `assert_rent_settled_for_vacate`.
+	This function still changes nothing: a deposit is not applied, and no invoice
+	is deleted or marked paid.
 	"""
 	return bed_allocation
+
+
+def unpaid_rent_for_stay(bed_allocation):
+	"""Submitted invoices for this stay that still have a balance.
+
+	The stay is the Bed Allocation, not every invoice for the tenant. Drafts are
+	not receivables. Cancelled invoices are docstatus 2 and are omitted.
+	Outstanding already includes payments and payment reversals.
+	"""
+	if not bed_allocation:
+		return []
+	# Permission filters must not hide a balance on this stay. The query is limited
+	# to the allocation being vacated, which the caller already has to be allowed to write.
+	rows = frappe.get_all(
+		"Rent Invoice",
+		filters={"bed_allocation": bed_allocation, "docstatus": 1},
+		fields=["name", "outstanding", "billing_month"],
+		order_by="billing_month asc, name asc",
+		ignore_permissions=True,
+	)
+	return [row for row in rows if flt(row.outstanding) > 0]
+
+
+def assert_rent_settled_for_vacate(bed_allocation):
+	"""Refuse vacating while this stay has submitted rent outstanding.
+
+	Does not pay, cancel, or delete anything. A caller settles the listed
+	invoices with a rent payment, or cancels an unpaid invoice so its reversal
+	clears the balance, then vacates.
+	"""
+	unpaid = unpaid_rent_for_stay(bed_allocation)
+	if not unpaid:
+		return
+	detail = ", ".join(
+		_("{0} ({1} still outstanding)").format(row.name, flt(row.outstanding, 2)) for row in unpaid
+	)
+	frappe.throw(
+		_(
+			"Settle unpaid rent for this stay before vacating: {0}. Vacating does not write off, delete, or pay invoices."
+		).format(detail),
+		frappe.ValidationError,
+	)
 
 
 def allow_reversal_transaction_link(doc):

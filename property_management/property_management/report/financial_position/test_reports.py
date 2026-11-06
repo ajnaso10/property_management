@@ -220,6 +220,34 @@ class TestPropertyReports(IntegrationTestCase):
 		self.assertEqual(flt(amounts["Operating profit"]), 1040)
 		self.assertEqual(flt(amounts["Rent collected"]), 400)
 
+		with self.assertRaises(frappe.ValidationError):
+			self.allocation_a.vacate(vacating_date=today())
+		self.allocation_a.reload()
+		self.assertEqual(self.allocation_a.allocation_status, "Active")
+		for open_invoice in frappe.get_all(
+			"Rent Invoice",
+			filters={"bed_allocation": self.allocation_a.name, "docstatus": 1},
+			fields=["name", "outstanding"],
+		):
+			if flt(open_invoice.outstanding) <= 0:
+				continue
+			payment = frappe.get_doc(
+				{
+					"doctype": "Rent Payment",
+					"tenant": self.tenant_a.name,
+					"posting_date": today(),
+					"amount": open_invoice.outstanding,
+					"payment_mode": "Cash",
+					"cash_bank_account": self.cash_a.name,
+					"allocations": [
+						{
+							"rent_invoice": open_invoice.name,
+							"allocated_amount": open_invoice.outstanding,
+						}
+					],
+				}
+			).insert()
+			payment.submit()
 		self.allocation_a.vacate(vacating_date=today())
 		_columns, occupancy_rows, occupancy_message, occupancy_chart = run_report("occupancy", {})
 		self.assertEqual(next(row["count"] for row in occupancy_rows if row["label"] == "Occupied beds"), 0)
@@ -230,7 +258,7 @@ class TestPropertyReports(IntegrationTestCase):
 		_columns, position, _message, _chart = run_report("financial_position", {})
 		self.assertEqual(
 			flt(next(row["amount"] for row in position if row["label"] == "All open receivables")),
-			1300,
+			0,
 		)
 
 		_columns, history, history_message, _chart = run_report(
@@ -239,7 +267,7 @@ class TestPropertyReports(IntegrationTestCase):
 		self.assertNotIn("debit", {column["fieldname"] for column in _columns})
 		self.assertNotIn("credit", {column["fieldname"] for column in _columns})
 		snapshot = next(row for row in history if row["row_type"] == "Snapshot")
-		self.assertEqual(flt(snapshot["amount"]), 1300)
+		self.assertEqual(flt(snapshot["amount"]), 0)
 		self.assertIn("vacating", history_message.lower())
 		self.assertTrue(any(row.get("reference_name") == self.allocation_a.name for row in history))
 		self.assertIn("not a debit and credit ledger", run_report("transaction_history", {})[2])

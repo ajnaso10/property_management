@@ -82,6 +82,32 @@ class TestMonthlyBilling(IntegrationTestCase):
 		january = self.invoice_for(allocation, "2026-01")
 		self.assertEqual(flt(january.rent_amount), flt(3100 * 12 / 31, 2))
 		self.assertEqual(getdate(january.due_date), getdate("2026-01-27"))
+		with self.assertRaises(frappe.ValidationError):
+			allocation.vacate(vacating_date="2026-02-10")
+		allocation.reload()
+		self.assertEqual(allocation.allocation_status, "Active")
+		cash = frappe.get_doc(
+			{
+				"doctype": "Cash Bank Account",
+				"account_name": f"Cash {unique_digits(4)}",
+				"account_type": "Cash",
+				"status": "Active",
+			}
+		).insert()
+		payment = frappe.get_doc(
+			{
+				"doctype": "Rent Payment",
+				"tenant": self.tenant.name,
+				"posting_date": "2026-01-31",
+				"amount": january.outstanding,
+				"payment_mode": "Cash",
+				"cash_bank_account": cash.name,
+				"allocations": [
+					{"rent_invoice": january.name, "allocated_amount": january.outstanding}
+				],
+			}
+		).insert()
+		payment.submit()
 		allocation.vacate(vacating_date="2026-02-10")
 		generate_rent_invoices(as_of="2026-03-31", monthly_revenue=schedule)
 		february = self.invoice_for(allocation, "2026-02")
@@ -91,7 +117,8 @@ class TestMonthlyBilling(IntegrationTestCase):
 		)
 		january.reload()
 		self.assertEqual(january.docstatus, 1)
-		self.assertEqual(flt(january.outstanding), flt(january.rent_amount))
+		self.assertEqual(flt(january.outstanding), 0)
+		self.assertEqual(flt(february.outstanding), flt(february.rent_amount))
 
 	def test_billing_day_clamps_in_february(self):
 		frappe.set_user("Administrator")
