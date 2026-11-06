@@ -222,20 +222,111 @@ class TestFinancialTransaction(IntegrationTestCase):
 			}
 		).insert()
 		expense.submit()
+		original = frappe.db.get_value(
+			"Financial Transaction",
+			{"reference_name": expense.name, "transaction_type": "Expense", "docstatus": 1},
+			["name", "amount"],
+			as_dict=True,
+		)
 		expense.cancel()
 		rows = frappe.get_all(
 			"Financial Transaction",
 			filters={"reference_name": expense.name, "reference_doctype": "Property Expense", "docstatus": 1},
-			fields=["amount", "transaction_type"],
+			fields=["name", "amount", "transaction_type", "reference_name"],
 			order_by="amount desc",
 		)
 		self.assertEqual(len(rows), 2)
 		self.assertEqual({row.transaction_type for row in rows}, {"Expense"})
 		self.assertEqual(flt(rows[0].amount), 250)
+		self.assertEqual(rows[0].name, original.name)
 		self.assertEqual(flt(rows[1].amount), -250)
+		self.assertTrue(all(row.reference_name == expense.name for row in rows))
 		expense.reload()
 		self.assertEqual(expense.docstatus, 2)
 		self.assertEqual(expense.status, "Cancelled")
+
+	def test_invoice_and_payment_cancel_keep_reversal_links(self):
+		invoice = self.make_invoice(1000)
+		generated = frappe.db.get_value(
+			"Financial Transaction",
+			{"reference_name": invoice.name, "transaction_type": "Rent Generated", "docstatus": 1},
+			"name",
+		)
+		payment = self.make_payment(400, [(invoice.name, 400)])
+		payment.insert()
+		payment.submit()
+		received = frappe.db.get_value(
+			"Financial Transaction",
+			{"reference_name": payment.name, "transaction_type": "Rent Received", "docstatus": 1},
+			"name",
+		)
+		payment.cancel()
+		invoice.reload()
+		self.assertEqual(flt(invoice.outstanding), 1000)
+		self.assertEqual(invoice.status, "Unpaid")
+		self.assertEqual(payment.docstatus, 2)
+		self.assertEqual(
+			frappe.db.get_value("Financial Transaction", received, "docstatus"),
+			1,
+		)
+		reversal = frappe.db.get_value(
+			"Financial Transaction",
+			{"reference_name": payment.name, "transaction_type": "Payment Reversal", "docstatus": 1},
+			["name", "amount"],
+			as_dict=True,
+		)
+		self.assertEqual(flt(reversal.amount), -400)
+
+		invoice.cancel()
+		self.assertEqual(
+			frappe.db.get_value("Financial Transaction", generated, "docstatus"),
+			1,
+		)
+		adjustment = frappe.db.get_value(
+			"Financial Transaction",
+			{"reference_name": invoice.name, "transaction_type": "Receivable Adjustment", "docstatus": 1},
+			["amount", "reference_doctype"],
+			as_dict=True,
+		)
+		self.assertEqual(adjustment.reference_doctype, "Rent Invoice")
+		self.assertEqual(flt(adjustment.amount), -1000)
+		invoice.reload()
+		self.assertEqual(invoice.docstatus, 2)
+		self.assertEqual(flt(invoice.outstanding), 0)
+
+	def test_reversal_cannot_reference_another_users_expense(self):
+		expense = frappe.get_doc(
+			{
+				"doctype": "Property Expense",
+				"posting_date": "2026-11-04",
+				"expense_category": "Cleaning",
+				"amount": 80,
+				"building": self.building.name,
+			}
+		).insert()
+		expense.submit()
+		expense.cancel()
+		frappe.set_user("Administrator")
+		other = make_property_user("Other Expense User")
+		frappe.set_user(other["user"])
+		foreign = frappe.new_doc("Financial Transaction")
+		foreign.transaction_type = "Expense"
+		foreign.amount = -80
+		foreign.reference_doctype = "Property Expense"
+		foreign.reference_name = expense.name
+		foreign.posting_date = "2026-11-04"
+		with self.assertRaises(frappe.PermissionError):
+			foreign.insert()
+
+	def test_missing_reference_is_still_rejected(self):
+		doc = frappe.new_doc("Financial Transaction")
+		doc.transaction_type = "Expense"
+		doc.amount = 10
+		doc.reference_doctype = "Property Expense"
+		doc.reference_name = "EXP-DOES-NOT-EXIST"
+		doc.posting_date = "2026-11-04"
+		with self.assertRaises(frappe.LinkValidationError):
+			doc.insert()
 
 	def test_property_user_cannot_open_another_users_invoice(self):
 		invoice = self.make_invoice(800, month="2026-12")

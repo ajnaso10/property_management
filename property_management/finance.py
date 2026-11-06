@@ -12,6 +12,16 @@ def leave_receivables_unchanged(bed_allocation):
 	return bed_allocation
 
 
+def allow_reversal_transaction_link(doc):
+	"""Let cancel finish when the audit trail already points at this document.
+
+	Frappe blocks cancel if a submitted dynamic link targets the row. The original
+	Financial Transaction is that link, and the reversal adds another. This is the
+	per-document `ignore_linked_doctypes` list, not a global `ignore_links` bypass.
+	"""
+	doc.ignore_linked_doctypes = ["Financial Transaction"]
+
+
 def post_financial_transaction(
 	*,
 	transaction_type,
