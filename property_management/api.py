@@ -62,30 +62,48 @@ def create_property_user(full_name, mobile_number, password, account_expiry, ena
 
 	expiry = getdate(account_expiry)
 	email = synthetic_email(mobile)
+	enabled_flag = 1 if cint(enabled) else 0
 
-	if frappe.db.exists("User", {"username": mobile}) or frappe.db.exists("User", {"mobile_no": mobile}):
+	existing_user = (
+		frappe.db.get_value("User", email, "name")
+		or frappe.db.get_value("User", {"username": mobile}, "name")
+		or frappe.db.get_value("User", {"mobile_no": mobile}, "name")
+	)
+	if existing_user and frappe.db.exists("Property User Profile", {"user": existing_user}):
 		frappe.throw(_("Mobile number {0} is already a username.").format(mobile))
-	if frappe.db.exists("User", email):
-		frappe.throw(_("A user for mobile number {0} already exists.").format(mobile))
 
 	parts = full_name.split()
-	user = frappe.get_doc(
-		{
-			"doctype": "User",
-			"email": email,
-			"first_name": parts[0],
-			"last_name": " ".join(parts[1:]),
-			"username": mobile,
-			"mobile_no": mobile,
-			"enabled": 1 if cint(enabled) else 0,
-			"send_welcome_email": 0,
-			"user_type": "System User",
-			"roles": [{"role": ROLE_PROPERTY_USER}],
-		}
-	)
-	user.new_password = password
-	user.flags.ignore_password_policy = True
-	user.insert(ignore_permissions=True)
+	if existing_user:
+		user = frappe.get_doc("User", existing_user)
+		user.first_name = parts[0]
+		user.last_name = " ".join(parts[1:])
+		user.username = mobile
+		user.mobile_no = mobile
+		user.enabled = enabled_flag
+		user.user_type = "System User"
+		if ROLE_PROPERTY_USER not in {row.role for row in user.roles}:
+			user.append("roles", {"role": ROLE_PROPERTY_USER})
+		user.new_password = password
+		user.flags.ignore_password_policy = True
+		user.save(ignore_permissions=True)
+	else:
+		user = frappe.get_doc(
+			{
+				"doctype": "User",
+				"email": email,
+				"first_name": parts[0],
+				"last_name": " ".join(parts[1:]),
+				"username": mobile,
+				"mobile_no": mobile,
+				"enabled": enabled_flag,
+				"send_welcome_email": 0,
+				"user_type": "System User",
+				"roles": [{"role": ROLE_PROPERTY_USER}],
+			}
+		)
+		user.new_password = password
+		user.flags.ignore_password_policy = True
+		user.insert(ignore_permissions=True)
 
 	profile = frappe.get_doc(
 		{
@@ -162,7 +180,10 @@ def change_own_password(old_password, new_password):
 	if not old_password or not new_password:
 		frappe.throw(_("Enter the current password and a new password."))
 
-	check_password(user, old_password)
+	try:
+		check_password(user, old_password, delete_tracker_cache=False)
+	except frappe.AuthenticationError:
+		frappe.throw(_("The current password is incorrect."))
 	if old_password == new_password:
 		frappe.throw(_("The new password must be different from the current password."))
 	_enforce_password_strength(new_password)

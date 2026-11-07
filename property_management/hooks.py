@@ -16,6 +16,14 @@ before_login = "property_management.auth.before_login"
 on_login = "property_management.auth.on_login"
 before_request = ["property_management.auth.before_request"]
 
+# Logged-in visits to "/" use this when the user has no default workspace.
+# on_login also sets flags.home_page so the login response itself lands on the workspace.
+role_home_page = {
+	"Property User": "desk/property-management",
+	"Property Super Admin": "desk/property-management",
+	"System Manager": "desk/property-management",
+}
+
 extend_bootinfo = "property_management.auth.extend_bootinfo"
 
 doc_events = {
