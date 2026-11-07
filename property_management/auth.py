@@ -1,5 +1,8 @@
 import re
 
+from werkzeug.exceptions import HTTPException
+from werkzeug.utils import redirect
+
 import frappe
 from frappe import _
 from frappe.utils import cint, getdate, today
@@ -7,12 +10,29 @@ from frappe.utils import cint, getdate, today
 from property_management.install import ROLE_PROPERTY_SUPER_ADMIN, ROLE_PROPERTY_USER
 from property_management.permissions import PRIVILEGED_ROLES
 
+
+class _PasswordChangeRedirect(HTTPException, frappe.Redirect):
+	"""Werkzeug HTTPException so frappe.app.application returns a redirect response from before_request."""
+
+	code = 302
+	description = "Redirect to /property-password"
+
+	def __init__(self, location="/property-password", http_status_code=302):
+		HTTPException.__init__(self, description=self.description)
+		frappe.Redirect.__init__(self, http_status_code=http_status_code)
+		self.location = location
+
+	def get_response(self, environ=None, scope=None):
+		return redirect(self.location, code=self.http_status_code)
+
 MOBILE_RE = re.compile(r"^[0-9]{8,15}$")
 SYNTHETIC_EMAIL_DOMAIN = "users.property.local"
 
 # Paths a signed-in user may hit before replacing the password issued by the super admin.
 PASSWORD_CHANGE_PATHS = {
 	"/property-password",
+	"/website_script.js",
+	"/favicon.ico",
 	"/api/method/logout",
 	"/api/method/property_management.api.change_own_password",
 }
@@ -67,14 +87,15 @@ def resolve_user(login_id, throw=True):
 def get_profile(user):
 	"""Return the Property User Profile for a Frappe User.
 
-	before_login runs while the session is still Guest. PropertyUserProfile inherits
-	OwnedDocument, which checks read permission on load, so a plain get_doc fails
-	before the session exists. Skip that gate only for Guest.
+	before_login and on_login run before the session is switched to the logging-in
+	user (the session is Guest or a previous signed-in user). PropertyUserProfile
+	inherits OwnedDocument, which checks read permission on load, so load the
+	profile with ignore_permissions during internal auth/API lookups.
 	"""
 	name = frappe.db.get_value("Property User Profile", {"user": user}, "name")
 	if not name:
 		return None
-	if frappe.session.user != "Guest":
+	if frappe.session.user == user:
 		return frappe.get_doc("Property User Profile", name)
 
 	previous = frappe.flags.get("ignore_permissions")
@@ -115,7 +136,7 @@ def assert_login_allowed(user):
 
 	profile = get_profile(user)
 	roles = set(frappe.get_roles(user))
-	managed_role = ROLE_PROPERTY_USER in roles and ROLE_PROPERTY_SUPER_ADMIN not in roles
+	managed_role = ROLE_PROPERTY_USER in roles and not roles.intersection(PRIVILEGED_ROLES)
 
 	if managed_role and not profile:
 		frappe.throw(
@@ -179,11 +200,11 @@ def before_request():
 	if path.startswith("/api/"):
 		frappe.throw(
 			_("Change the temporary password before using the desk."),
-			frappe.AuthenticationError,
+			frappe.PermissionError,
 		)
 
 	frappe.local.flags.redirect_location = "/property-password"
-	raise frappe.Redirect
+	raise _PasswordChangeRedirect("/property-password")
 
 
 def extend_bootinfo(bootinfo):
