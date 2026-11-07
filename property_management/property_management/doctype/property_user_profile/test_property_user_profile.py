@@ -44,6 +44,13 @@ class TestPropertyUserProfile(IntegrationTestCase):
 		with self.assertRaises(frappe.PermissionError):
 			create_property_user("Other Person", unique_mobile(), "initial-pass-1", future_expiry())
 
+	def test_login_check_allows_active_account_as_guest(self):
+		"""before_login still runs as Guest; loading the profile must not PermissionError."""
+		frappe.set_user("Administrator")
+		created = make_property_user()
+		frappe.set_user("Guest")
+		assert_login_allowed(created["user"])
+
 	def test_expired_account_is_blocked(self):
 		frappe.set_user("Administrator")
 		created = make_property_user()
@@ -51,6 +58,8 @@ class TestPropertyUserProfile(IntegrationTestCase):
 		profile.account_expiry = add_days(today(), -1)
 		profile.save(ignore_permissions=True)
 
+		# Login hooks evaluate the profile before the session is created.
+		frappe.set_user("Guest")
 		with self.assertRaises(frappe.AuthenticationError):
 			assert_login_allowed(created["user"])
 

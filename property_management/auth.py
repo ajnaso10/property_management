@@ -65,10 +65,24 @@ def resolve_user(login_id, throw=True):
 
 
 def get_profile(user):
+	"""Return the Property User Profile for a Frappe User.
+
+	before_login runs while the session is still Guest. PropertyUserProfile inherits
+	OwnedDocument, which checks read permission on load, so a plain get_doc fails
+	before the session exists. Skip that gate only for Guest.
+	"""
 	name = frappe.db.get_value("Property User Profile", {"user": user}, "name")
 	if not name:
 		return None
-	return frappe.get_doc("Property User Profile", name)
+	if frappe.session.user != "Guest":
+		return frappe.get_doc("Property User Profile", name)
+
+	previous = frappe.flags.get("ignore_permissions")
+	frappe.flags.ignore_permissions = True
+	try:
+		return frappe.get_doc("Property User Profile", name)
+	finally:
+		frappe.flags.ignore_permissions = previous
 
 
 def is_managed_account(user):
