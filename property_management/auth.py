@@ -38,6 +38,9 @@ PASSWORD_CHANGE_PATHS = {
 }
 PASSWORD_CHANGE_PREFIXES = ("/assets/", "/socket.io")
 
+# Desk workspace opened after a successful sign-in. https://dormo.online/desk/property-management
+DESK_HOME = "/desk/property-management"
+
 
 def normalize_mobile(mobile):
 	"""Login username is the mobile number, digits only, country code included."""
@@ -168,8 +171,13 @@ def before_login(login_manager=None):
 def on_login(login_manager=None):
 	user = getattr(login_manager, "user", None) or frappe.session.user
 	assert_login_allowed(user)
+	# get_home_page reads this before role pages and the user's default workspace.
+	# The login page uses it as the post-login location.
 	if must_change_password(user):
 		frappe.cache.hset("redirect_after_login", user, "/property-password")
+		frappe.local.flags.home_page = "/property-password"
+		return
+	frappe.local.flags.home_page = DESK_HOME
 
 
 def before_request():
